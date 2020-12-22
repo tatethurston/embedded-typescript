@@ -8,14 +8,13 @@
     "url": "https://github.com/tatethurston/embedded-typescript"
   },
   "version": "0.0.3",
-  "main": "dist",
   "bin": {
     "ets": "./dist/index.js"
   },
   "files": [
-    "dist/index.js",
     "dist/cli/**/index.js",
     "dist/compiler/**/index.js",
+    "dist/index.js",
     "dist/parser/**/index.js"
   ],
   "scripts": {
