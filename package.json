@@ -13,8 +13,10 @@
     "ets": "./dist/index.js"
   },
   "files": [
-    "dist/(compiler|parser)/**/index.js",
-    "dist/index.js"
+    "dist/index.js",
+    "dist/cli/**/index.js",
+    "dist/compiler/**/index.js",
+    "dist/parser/**/index.js"
   ],
   "scripts": {
     "build": "yarn clean && yarn tsc",
