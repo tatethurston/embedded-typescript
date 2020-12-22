@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/tatethurston/embedded-typescript"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "dist",
   "bin": {
     "ets": "./dist/index.js"
