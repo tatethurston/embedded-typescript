@@ -23,6 +23,7 @@ This templating system does _not_ perform any HTML escaping. You can `import` an
 ## Syntax
 
 `<%= EXPRESSION %>` — Inserts the value of an expression.
+
 `<% CODE %>` — Executes code, but does not insert a value. Trims the preceding indentation and the following line break if placed on it's own line.
 
 ## Examples 🚀
