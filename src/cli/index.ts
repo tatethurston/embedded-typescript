@@ -1,4 +1,10 @@
-import { readdirSync, existsSync, readFileSync, writeFileSync } from "fs";
+import {
+  readdirSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  statSync,
+} from "fs";
 import { join } from "path";
 import { compiler } from "../compiler";
 
@@ -46,23 +52,32 @@ function getConfig(): Config {
   };
 }
 
+function findFiles(entry: string, ext: string): string[] {
+  return readdirSync(entry)
+    .flatMap((file) => {
+      const filepath = join(entry, file);
+      if (statSync(filepath).isDirectory()) {
+        return findFiles(filepath, ext);
+      }
+      return filepath;
+    })
+    .filter((file) => file.endsWith(ext));
+}
+
 export function run(): void {
   const { source } = getConfig();
-
-  const templates = readdirSync(source).filter((file) => file.endsWith(".ets"));
+  const templates = findFiles(source, ".ets");
 
   const created = new Set<string>();
   const updated = new Set<string>();
   const unchanged = new Set<string>();
   templates.forEach((template) => {
     let compiledTemplate;
-    const templatePath = join(source, template);
     const output = template + ".ts";
-    const outputPath = join(source, output);
     try {
-      compiledTemplate = compiler(readFileSync(templatePath, "utf8"));
+      compiledTemplate = compiler(readFileSync(template, "utf8"));
     } catch (e) {
-      console.warn(`Failed to compile '${templatePath}'`);
+      console.warn(`Failed to compile '${template}'`);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       console.warn(e.message);
       console.warn();
@@ -85,7 +100,7 @@ export function run(): void {
       }
     }
 
-    writeFileIfChange(output, outputPath, compiledTemplate);
+    writeFileIfChange(output, output, compiledTemplate);
   });
 
   if (created.size) {
