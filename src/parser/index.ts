@@ -32,6 +32,15 @@ export type BlockNode = BaseNode<
 
 export type Node = TextNode | ExpressionNode | StatementNode | BlockNode;
 
+export type ParseError = {
+  error: string;
+  position: {
+    line: number;
+    column: number;
+  };
+  context: string;
+};
+
 const OPEN = "<%";
 const CLOSE = "%>";
 const EXPRESSION = "=";
@@ -60,7 +69,55 @@ function stripModifierToken(token: string): string {
   return stripped;
 }
 
-export function parse(template: string): Node[] {
+export function isParseError<T extends unknown>(
+  parsed: T | ParseError
+): parsed is ParseError {
+  return typeof parsed === "object" && "error" in parsed;
+}
+
+type Position = { line: number; column: number };
+
+function lineAndColumn(template: string, index: number): Position {
+  const lines = template.slice(0, index).split("\n");
+  const line = lines.length;
+  const column = (lines.pop()?.length ?? 0) + 1;
+
+  return {
+    line,
+    column,
+  };
+}
+
+function formatContext(template: string, position: Position): string {
+  const templateLines = template.split("\n").length - 1;
+  const hasMoreLines = templateLines > position.line;
+  const line = template.split("\n")[position.line - 1];
+  return `    |
+${position.line.toString().padEnd(4, " ")}| ${line}
+    | ${"^".padStart(position.column, " ")}
+    | ${"|".padStart(position.column, " ")}
+${hasMoreLines ? "..." : ""}
+`;
+}
+
+function parseError({
+  error,
+  template,
+  index,
+}: {
+  error: string;
+  template: string;
+  index: number;
+}): ParseError {
+  const position = lineAndColumn(template, index);
+  return {
+    error,
+    position,
+    context: formatContext(template, position),
+  };
+}
+
+export function parse(template: string): Node[] | ParseError {
   const parsed: Node[] = [];
   const block = blockTracker();
 
@@ -74,23 +131,42 @@ export function parse(template: string): Node[] {
       if (isWhitespace(text)) {
         break;
       }
-      console.error("'", text, "'");
-      throw new Error(
-        `Expected text to be inside a block at position ${position}`
-      );
+
+      // first non whitespace character
+      const firstCharacterIndex = position + text.search(/\S/);
+      return parseError({
+        error: "Expected text to be inside a block",
+        template,
+        index: firstCharacterIndex,
+      });
     }
 
-    if ((!isPresent(openIdx) && isPresent(closeIdx)) || closeIdx < openIdx) {
-      throw new Error(`Unexpected '${CLOSE}' at position ${closeIdx}`);
+    if (
+      (!isPresent(openIdx) && isPresent(closeIdx)) ||
+      (isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx)
+    ) {
+      return parseError({
+        error: `Unexpected closing tag '${CLOSE}'`,
+        template,
+        index: closeIdx,
+      });
     }
 
     if (isPresent(openIdx) && !isPresent(closeIdx)) {
-      throw new Error(`Expected to find '${CLOSE}' before ${template.length}`);
+      return parseError({
+        error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
+        template,
+        index: openIdx,
+      });
     }
 
     const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
     if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
-      throw new Error(`Unexpected '${OPEN}' at position ${nextOpenIdx}`);
+      return parseError({
+        error: `Unexpected opening tag '${OPEN}'`,
+        template,
+        index: nextOpenIdx,
+      });
     }
 
     // text before template code
@@ -98,10 +174,13 @@ export function parse(template: string): Node[] {
     if (block.isOpen()) {
       parsed.push({ type: "text", content: text });
     } else if (!isWhitespace(text)) {
-      console.error("'", text, "'");
-      throw new Error(
-        `Expected text to be inside a block at position ${position}`
-      );
+      // first non whitespace character
+      const firstCharacterIndex = position + text.search(/\S/);
+      return parseError({
+        error: "Expected text to be inside a block",
+        template,
+        index: firstCharacterIndex,
+      });
     }
 
     // template code
@@ -152,12 +231,13 @@ export function parse(template: string): Node[] {
     position = closeIdx + CLOSE.length;
   }
 
-  if (block.isOpen()) {
-    throw new Error(
-      `Expected closing tags for '${block.blocks.join(
-        ", "
-      )}' at position ${position}`
-    );
-  }
+  // TODO: This does not handle escaped tags
+  //if (block.isOpen()) {
+  //  return {
+  //    error: `Expected closing tags for '${block.blocks.join(", ")}'`,
+  //    position: lineAndColumn(template, position),
+  //    context: "",
+  //  };
+  //}
   return parsed;
 }

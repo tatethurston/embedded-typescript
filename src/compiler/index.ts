@@ -1,5 +1,12 @@
 import { trimLagging, trimLeading, sanitizeString } from "./utils";
-import { Node, BlockNode, StatementNode, parse } from "../parser";
+import {
+  Node,
+  BlockNode,
+  StatementNode,
+  parse,
+  ParseError,
+  isParseError,
+} from "../parser";
 
 function isStatementNode(node: Node): node is StatementNode | BlockNode {
   return ["statement", "blockOpen", "blockClose"].includes(node.type);
@@ -70,6 +77,10 @@ function compile(nodes: Node[]): string {
   return compiled;
 }
 
-export function compiler(template: string): string {
-  return compile(parse(template));
+export function compiler(template: string): string | ParseError {
+  const parsed = parse(template);
+  if (isParseError(parsed)) {
+    return parsed;
+  }
+  return compile(parsed);
 }

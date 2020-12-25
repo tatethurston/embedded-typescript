@@ -7,6 +7,7 @@ import {
 } from "fs";
 import { basename, join } from "path";
 import { compiler } from "../compiler";
+import { isParseError } from "../parser";
 
 export type UserConfig = Partial<Config>;
 
@@ -78,15 +79,17 @@ export function run(): void {
 // Source: ${templatePath}
 
 `;
-    try {
-      compiledTemplate += compiler(readFileSync(template, "utf8"));
-    } catch (e) {
-      console.warn(`Failed to compile '${template}'`);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.warn(e.message);
+    const out = compiler(readFileSync(template, "utf8"));
+    if (isParseError(out)) {
+      console.error(`error: ${out.error}`);
+      console.error(
+        `   --> ${templatePath}:${out.position.line}:${out.position.column}`
+      );
+      console.error(out.context);
       console.warn();
       return;
     }
+    compiledTemplate += out;
 
     function writeFileIfChange(
       name: string,
