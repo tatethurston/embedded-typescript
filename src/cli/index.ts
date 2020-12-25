@@ -4,13 +4,13 @@ import { compiler } from "../compiler";
 
 export type UserConfig = Partial<Config>;
 
-type Config = { src: string };
+type Config = { source: string };
 
 function getConfig(): Config {
   const cwd = process.cwd();
 
   const defaultConfig = {
-    src: cwd,
+    source: cwd,
   };
 
   const configFilePath = join(cwd, ".ets.json");
@@ -47,18 +47,18 @@ function getConfig(): Config {
 }
 
 export function run(): void {
-  const { src } = getConfig();
+  const { source } = getConfig();
 
-  const templates = readdirSync(src).filter((file) => file.endsWith(".ets"));
+  const templates = readdirSync(source).filter((file) => file.endsWith(".ets"));
 
   const created = new Set<string>();
   const updated = new Set<string>();
   const unchanged = new Set<string>();
   templates.forEach((template) => {
     let compiledTemplate;
-    const templatePath = join(src, template);
+    const templatePath = join(source, template);
     const output = template + ".ts";
-    const outputPath = join(src, output);
+    const outputPath = join(source, output);
     try {
       compiledTemplate = compiler(readFileSync(templatePath, "utf8"));
     } catch (e) {

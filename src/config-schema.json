@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "ETS Compiler Config",
+  "description": "Embedded TypeScript compiler configuration file format",
+  "type": "object",
+  "properties": {
+    "source": {
+      "description": "The filepath to search under for ets templates",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
