@@ -75,7 +75,9 @@ error: Unexpected closing tag '%>'
 ```
 
 The first line is a description of the error that was encountered.
-The second line is location of the error, in path:line:column notation.
+
+The second line is location of the error, in `path:line:column` notation.
+
 The next 5 lines provide visual context for the error.
 
 ## Installation & Usage 📦
