@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "name": "@ets/example",
+  "description": "Embedded TypeScript example",
+  "version": "0.0.6",
+  "scripts": {
+    "clean": "rm -rf src/**/*.ets.ts",
+    "test": "yarn clean && yarn ets && yarn jest"
+  },
+  "dependencies": {
+    "embedded-typescript": "0.0.6"
+  }
+}

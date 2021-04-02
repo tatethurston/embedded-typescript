@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "name": "@ets/compiler",
+  "version": "0.0.6",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@ets/parser": "0.0.6"
+  }
+}

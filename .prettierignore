@@ -1,1 +1,3 @@
 *.ets.ts
+dist
+node_modules
