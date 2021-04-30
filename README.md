@@ -2,6 +2,24 @@
 
 <blockquote>Type safe embedded TypeScript templates</blockquote>
 
+<br />
+
+<a href="https://www.npmjs.com/package/embedded-typescript">
+  <img src="https://img.shields.io/npm/v/embedded-typescript.svg">
+</a>
+<a href="https://github.com/tatethurston/embedded-typescript/blob/master/LICENSE">
+  <img src="https://img.shields.io/npm/l/embedded-typescript.svg">
+</a>
+<a href="https://bundlephobia.com/result?p=embedded-typescript">
+  <img src="https://img.shields.io/bundlephobia/minzip/embedded-typescript">
+</a>
+<a href="https://www.npmjs.com/package/embedded-typescript">
+  <img src="https://img.shields.io/npm/dy/embedded-typescript.svg">
+</a>
+<a href="https://github.com/tatethurston/embedded-typescript/actions/workflows/ci.yml">
+  <img src="https://github.com/tatethurston/embedded-typescript/actions/workflows/ci.yml/badge.svg">
+</a>
+
 ## What is this? 🧐
 
 A templating system to generate type safe templates for TypeScript. Templates are compiled to TypeScript files, which can then be imported for type safe string generation.
