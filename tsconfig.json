@@ -16,9 +16,7 @@
     "strict": true,
     "target": "ES2015",
     "declaration": true,
-    "lib": [
-      "ESNext"
-    ]
+    "lib": ["ESNext"]
   },
   "exclude": ["node_modules", "dist"]
 }
