@@ -6,8 +6,8 @@ import {
   statSync,
 } from "fs";
 import { basename, join } from "path";
-import { compiler } from "../compiler";
-import { isParseError } from "../parser";
+import { compiler } from "@ets/compiler";
+import { isParseError } from "@ets/parser";
 
 export type UserConfig = Partial<Config>;
 

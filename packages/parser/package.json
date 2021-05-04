@@ -1,0 +1,6 @@
+{
+  "private": "true",
+  "name": "@ets/parser",
+  "version": "0.0.6",
+  "main": "src/index.ts"
+}

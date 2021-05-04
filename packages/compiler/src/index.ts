@@ -6,7 +6,7 @@ import {
   parse,
   ParseError,
   isParseError,
-} from "../parser";
+} from "@ets/parser";
 
 function isStatementNode(node: Node): node is StatementNode | BlockNode {
   return ["statement", "blockOpen", "blockClose"].includes(node.type);

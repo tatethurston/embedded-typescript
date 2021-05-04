@@ -1,43 +1,25 @@
 {
-  "name": "embedded-typescript",
-  "description": "Type safe embedded TypeScript templates",
-  "license": "MIT",
-  "author": "Tate <tatethurston@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tatethurston/embedded-typescript"
-  },
-  "version": "0.0.6",
-  "bin": {
-    "ets": "./dist/index.js"
-  },
-  "files": [
-    "dist/cli/**/index.js",
-    "dist/compiler/**/index.js",
-    "dist/index.js",
-    "dist/parser/**/index.js"
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "example"
   ],
   "scripts": {
-    "build": "yarn clean && yarn tsc",
-    "build:watch": "yarn build --watch",
-    "clean": "rm -rf dist/*",
-    "lint": "yarn typecheck && prettier --check . && prettier-package-json --list-different package.json && eslint .",
-    "lint:fix": "prettier --write . && prettier-package-json --write package.json && eslint --fix .",
-    "lint:fix:md": "prettier --write '*.md'",
-    "lint:fix:package": "prettier-package-json --write package.json",
-    "lint:fix:ts": "eslint --fix './src/**/*.ts{,x}'",
-    "test": "yarn build && jest --testTimeout 5000 --rootDir dist",
-    "typecheck": "yarn tsc --noEmit",
-    "typecheck:watch": "yarn typecheck --watch",
-    "version": "yarn run build && git add -A package.json",
-    "postversion": "git push && git push --tags"
+    "lint": "yarn typecheck && prettier --check . && prettier-package-json --list-different '{,example/,packages/**/}package.json' && eslint .",
+    "lint:fix": "prettier --write . && prettier-package-json --write '{,example/,packages/**/}package.json' && eslint --fix .",
+    "test": "yarn jest 'packages/*' && yarn workspace embedded-typescript run build && yarn workspace @ets/example run test",
+    "typecheck": "yarn workspaces run tsc --noEmit"
   },
   "types": "dist",
   "devDependencies": {
-    "@types/jest": "^26.0.15",
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.0",
+    "@babel/preset-typescript": "^7.13.0",
+    "@types/jest": "^26.0.23",
     "@types/node": "^13.13.5",
     "@typescript-eslint/eslint-plugin": "^4.1.0",
     "@typescript-eslint/parser": "^4.1.0",
+    "babel-jest": "^26.6.3",
     "eslint": "^7.8.1",
     "eslint-config-prettier": "^8.1.0",
     "husky": "^4.3.0",
@@ -46,14 +28,6 @@
     "prettier-package-json": "^2.1.3",
     "typescript": "^4.1.3"
   },
-  "keywords": [
-    "embedded",
-    "engine",
-    "template",
-    "templating",
-    "type safe",
-    "typescript"
-  ],
   "husky": {
     "hooks": {
       "pre-commit": "yarn lint"
