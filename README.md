@@ -22,15 +22,22 @@
 
 ## What is this? 🧐
 
-A templating system to generate type safe templates for TypeScript. Templates are compiled to TypeScript files, which can then be imported for type safe string generation.
+A type safe templating system for TypeScript. Templates are compiled to TypeScript files that are then imported for type safe string generation.
 
-This templating system draws inspiration from ERB, [EJS](https://ejs.co/), [handlebars](https://handlebarsjs.com/) and [mustache](https://github.com/janl/mustache.js). Specifically, this project embraces the "just JavaScript" semantics of ejs with some of the helpful white space semantics of mustache.
+This templating system draws inspiration from ERB, [EJS](https://ejs.co/), [handlebars](https://handlebarsjs.com/) and [mustache](https://github.com/janl/mustache.js). This project embraces the "just JavaScript" spirit of ejs and adds some of the helpful white space semantics of mustache.
+
+Checkout the [examples](#examples-) or [play with embedded-typescript in your browser](https://codesandbox.io/s/ets-playground-9mzk8).
+
+## Installation & Usage 📦
+
+1. Add this package to your project:
+   - `yarn add embedded-typescript`
 
 ## Motivation
 
 `Hello undefined!`
 
-When using a typed language, I want my templates to be type checked. For most cases, [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) perform the job nicely. If I'm writing XML, [JSX](https://www.typescriptlang.org/docs/handbook/jsx.html) works nicely. When I have complicated non-XML templates, template literals become difficult to maintain. I can use ejs/hbs/mustache/etc, but then I lose the type safety I had with template literals. Sometimes I want the expressiveness of a templating language, but I'm not willing to lose type safety.
+When using a typed language, I want my templates to be type checked. For most cases, [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) work well. If I'm writing XML, [JSX](https://www.typescriptlang.org/docs/handbook/jsx.html) works well. When I have complicated non-XML templates, template literals become difficult to maintain. I can use ejs/hbs/mustache/etc, but then I lose the type safety I had with template literals. Sometimes I want the expressiveness of a templating language without losing type safety. For those cases, I wrote `embedded-typescript`.
 
 ## Notable deviations from prior art
 
@@ -97,11 +104,6 @@ The first line is a description of the error that was encountered.
 The second line is location of the error, in `path:line:column` notation.
 
 The next 5 lines provide visual context for the error.
-
-## Installation & Usage 📦
-
-1. Add this package to your project:
-   - `yarn add embedded-typescript`
 
 ## Highlights
 
