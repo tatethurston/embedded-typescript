@@ -32,11 +32,16 @@ export type BlockNode = BaseNode<
 
 export type Node = TextNode | ExpressionNode | StatementNode | BlockNode;
 
+type Range = {
+  line: number;
+  column: number;
+};
+
 export type ParseError = {
   error: string;
   position: {
-    line: number;
-    column: number;
+    start: Range;
+    end: Range;
   };
   context: string;
 };
@@ -69,10 +74,10 @@ function stripModifierToken(token: string): string {
   return stripped;
 }
 
-export function isParseError<T extends unknown>(
-  parsed: T | ParseError
+export function isParseError(
+  parsed: unknown | ParseError
 ): parsed is ParseError {
-  return typeof parsed === "object" && "error" in parsed;
+  return typeof parsed === "object" && parsed != null && "error" in parsed;
 }
 
 type Position = { line: number; column: number };
@@ -103,17 +108,24 @@ ${hasMoreLines ? "..." : ""}
 function parseError({
   error,
   template,
-  index,
+  startIdx,
+  endIdx,
 }: {
   error: string;
   template: string;
-  index: number;
+  startIdx: number;
+  endIdx: number;
 }): ParseError {
-  const position = lineAndColumn(template, index);
+  const start = lineAndColumn(template, startIdx);
+  const end = lineAndColumn(template, endIdx);
+
   return {
     error,
-    position,
-    context: formatContext(template, position),
+    position: {
+      start,
+      end,
+    },
+    context: formatContext(template, start),
   };
 }
 
@@ -137,7 +149,9 @@ export function parse(template: string): Node[] | ParseError {
       return parseError({
         error: "Expected text to be inside a block",
         template,
-        index: firstCharacterIndex,
+        startIdx: firstCharacterIndex,
+        // TODO: end of characters (not whitespace) before open tag
+        endIdx: template.length - 1,
       });
     }
 
@@ -148,7 +162,8 @@ export function parse(template: string): Node[] | ParseError {
       return parseError({
         error: `Unexpected closing tag '${CLOSE}'`,
         template,
-        index: closeIdx,
+        startIdx: closeIdx,
+        endIdx: closeIdx + CLOSE.length - 1,
       });
     }
 
@@ -156,7 +171,8 @@ export function parse(template: string): Node[] | ParseError {
       return parseError({
         error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
         template,
-        index: openIdx,
+        startIdx: openIdx,
+        endIdx: template.length - 1,
       });
     }
 
@@ -165,7 +181,8 @@ export function parse(template: string): Node[] | ParseError {
       return parseError({
         error: `Unexpected opening tag '${OPEN}'`,
         template,
-        index: nextOpenIdx,
+        startIdx: nextOpenIdx,
+        endIdx: nextOpenIdx + OPEN.length - 1,
       });
     }
 
@@ -179,7 +196,9 @@ export function parse(template: string): Node[] | ParseError {
       return parseError({
         error: "Expected text to be inside a block",
         template,
-        index: firstCharacterIndex,
+        startIdx: firstCharacterIndex,
+        // TODO: end of characters (not whitespace) before open tag
+        endIdx: template.length - 1,
       });
     }
 
@@ -232,6 +251,8 @@ export function parse(template: string): Node[] | ParseError {
   }
 
   // TODO: This does not handle escaped tags
+  // Probably will want to consume TS as a peer dependency. Then we can also surface TS errors.
+  //
   //if (block.isOpen()) {
   //  return {
   //    error: `Expected closing tags for '${block.blocks.join(", ")}'`,

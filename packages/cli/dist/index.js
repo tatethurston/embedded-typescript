@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, {enumerable: true, configurable: true, writable: true, value}) : obj[key] = value;
-var __objSpread = (a, b) => {
+var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
     if (__hasOwnProp.call(b, prop))
       __defNormalProp(a, prop, b[prop]);
@@ -156,13 +156,18 @@ ${hasMoreLines ? "..." : ""}
 function parseError({
   error,
   template,
-  index
+  startIdx,
+  endIdx
 }) {
-  const position = lineAndColumn(template, index);
+  const start = lineAndColumn(template, startIdx);
+  const end = lineAndColumn(template, endIdx);
   return {
     error,
-    position,
-    context: formatContext(template, position)
+    position: {
+      start,
+      end
+    },
+    context: formatContext(template, start)
   };
 }
 function parse(template) {
@@ -181,21 +186,24 @@ function parse(template) {
       return parseError({
         error: "Expected text to be inside a block",
         template,
-        index: firstCharacterIndex
+        startIdx: firstCharacterIndex,
+        endIdx: template.length - 1
       });
     }
     if (!isPresent(openIdx) && isPresent(closeIdx) || isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx) {
       return parseError({
         error: `Unexpected closing tag '${CLOSE}'`,
         template,
-        index: closeIdx
+        startIdx: closeIdx,
+        endIdx: closeIdx + CLOSE.length - 1
       });
     }
     if (isPresent(openIdx) && !isPresent(closeIdx)) {
       return parseError({
         error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
         template,
-        index: openIdx
+        startIdx: openIdx,
+        endIdx: template.length - 1
       });
     }
     const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
@@ -203,7 +211,8 @@ function parse(template) {
       return parseError({
         error: `Unexpected opening tag '${OPEN}'`,
         template,
-        index: nextOpenIdx
+        startIdx: nextOpenIdx,
+        endIdx: nextOpenIdx + OPEN.length - 1
       });
     }
     const text = template.slice(position, openIdx);
@@ -214,7 +223,8 @@ function parse(template) {
       return parseError({
         error: "Expected text to be inside a block",
         template,
-        index: firstCharacterIndex
+        startIdx: firstCharacterIndex,
+        endIdx: template.length - 1
       });
     }
     const code = template.slice(openIdx + OPEN.length, closeIdx).trim();
@@ -357,7 +367,7 @@ function getConfig() {
     }
     console.info();
   }
-  return __objSpread(__objSpread({}, defaultConfig), userConfig);
+  return __spreadValues(__spreadValues({}, defaultConfig), userConfig);
 }
 function findFiles(entry, ext) {
   return (0, import_fs.readdirSync)(entry).flatMap((file) => {
@@ -384,7 +394,7 @@ function run() {
     const out = compiler((0, import_fs.readFileSync)(template, "utf8"));
     if (isParseError(out)) {
       console.error(`error: ${out.error}`);
-      console.error(`   --> ${templatePath}:${out.position.line}:${out.position.column}`);
+      console.error(`   --> ${templatePath}:${out.position.start.line}:${out.position.start.column}`);
       console.error(out.context);
       console.warn();
       return;
