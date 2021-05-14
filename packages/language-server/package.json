@@ -1,15 +1,12 @@
 {
-  "name": "embedded-typescript",
+  "name": "@ets/language-server",
   "version": "0.0.6",
-  "description": "Type safe embedded TypeScript templates",
+  "description": "Embedded TypeScript Language Server",
   "license": "MIT",
   "author": "Tate <tatethurston@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/tatethurston/embedded-typescript"
-  },
-  "bin": {
-    "ets": "./dist/index.js"
   },
   "files": [
     "dist/index.js"
@@ -20,16 +17,12 @@
     "version": "yarn run build && git add -A package.json",
     "postversion": "git push && git push --tags"
   },
-  "types": "dist",
+  "dependencies": {
+    "@ets/parser": "0.0.6",
+    "vscode-languageserver": "^7.0.0",
+    "vscode-languageserver-textdocument": "^1.0.1"
+  },
   "devDependencies": {
     "esbuild": "^0.11.20"
-  },
-  "keywords": [
-    "embedded",
-    "engine",
-    "template",
-    "templating",
-    "type safe",
-    "typescript"
-  ]
+  }
 }

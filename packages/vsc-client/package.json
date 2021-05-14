@@ -1,0 +1,42 @@
+{
+  "private": true,
+  "name": "embedded-typescript-vsc",
+  "version": "0.0.6",
+  "description": "Embedded TypeScript Language Server Client for Visual Studio Code",
+  "license": "MIT",
+  "author": "Tate <tatethurston@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tatethurston/embedded-typescript"
+  },
+  "main": "./dist/extension",
+  "scripts": {
+    "build": "yarn build:client && yarn build:server",
+    "build:client": "esbuild src/extension.ts --external:'vscode' --platform=node --target=node12 --bundle --outfile=dist/extension.js",
+    "build:server": "(cd ../language-server && yarn build && mv dist/{index,server}.js) && cp ../language-server/dist/server.js ./dist/"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.52.0",
+    "vsce": "^1.88.0",
+    "vscode-languageclient": "^7.0.0",
+    "vscode-test": "^1.3.0"
+  },
+  "engines": {
+    "vscode": "^1.52.0"
+  },
+  "activationEvents": [
+    "onLanguage:embedded-typescript"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "embedded-typescript",
+        "extensions": [
+          ".ets"
+        ]
+      }
+    ]
+  },
+  "displayName": "Embedded TypeScript Language Server",
+  "publisher": "embedded-typescript"
+}

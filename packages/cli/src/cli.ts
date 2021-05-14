@@ -83,7 +83,7 @@ export function run(): void {
     if (isParseError(out)) {
       console.error(`error: ${out.error}`);
       console.error(
-        `   --> ${templatePath}:${out.position.line}:${out.position.column}`
+        `   --> ${templatePath}:${out.position.start.line}:${out.position.start.column}`
       );
       console.error(out.context);
       console.warn();
