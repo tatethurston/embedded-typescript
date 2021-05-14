@@ -1,71 +1,99 @@
-import { trimLagging, trimLeading, sanitizeString } from "./utils";
 import {
-  Node,
-  BlockNode,
-  StatementNode,
-  parse,
-  ParseError,
-  isParseError,
-} from "@ets/parser";
-
-function isStatementNode(node: Node): node is StatementNode | BlockNode {
-  return ["statement", "blockOpen", "blockClose"].includes(node.type);
-}
+  trimLeadingIndentation,
+  getLeadingIndentation,
+  trimLaggingNewline,
+  sanitizeString,
+  trimLeadingIndentationAndNewline,
+} from "./utils";
+import { Node, parse, ParseError, isParseError } from "@ets/parser";
 
 const RESULT = "result";
 
 function compile(nodes: Node[]): string {
   let compiled = "";
+  let indent = "";
+
+  function write(text: string): void {
+    compiled += indent + text;
+  }
+
+  function preserveIndentation(text: string, indentation: string): string {
+    return text
+      .toString()
+      .split("\n")
+      .map((line, idx) => (idx === 0 ? line : indentation + line))
+      .join("\n");
+  }
 
   nodes.forEach((node, idx) => {
+    const prevNode = nodes[idx - 1];
+    const nextNode = nodes[idx + 1];
+
     switch (node.type) {
+      case "untemplated": {
+        write(node.content);
+        break;
+      }
       case "text": {
         let content = node.content;
 
-        const prevNode = nodes[idx - 1];
-        if (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (prevNode?.type === "statement") {
+          content = trimLaggingNewline(content);
+        } else if (
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          prevNode &&
-          (isStatementNode(prevNode) ||
-            (prevNode.type === "expression" && prevNode.context.trimLagging))
+          prevNode?.type === "templateMarker" &&
+          prevNode.context.marker === "start"
         ) {
-          content = trimLagging(content);
+          content = trimLaggingNewline(content);
         }
 
-        const nextNode = nodes[idx + 1];
-        if (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (nextNode?.type === "statement") {
+          content = trimLeadingIndentation(content);
+        } else if (
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          nextNode &&
-          isStatementNode(nextNode)
+          nextNode?.type === "templateMarker" &&
+          nextNode.context.marker === "end"
         ) {
-          content = trimLeading(content);
+          content = trimLeadingIndentationAndNewline(content);
         }
 
         if (content) {
-          compiled += `${RESULT} += '${sanitizeString(content)}';\n`;
+          write(`${RESULT} += '${sanitizeString(content)}';\n`);
         }
         break;
       }
       case "expression": {
-        compiled += `${RESULT} += ${node.content};\n`;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        const indentation = getLeadingIndentation(prevNode.content ?? "");
+        if (!indentation) {
+          write(`${RESULT} += ${node.content};\n`);
+        } else {
+          write(
+            `${RESULT} += (${preserveIndentation.toString()})(${
+              node.content
+            }, '${indentation}');\n`
+          );
+        }
         break;
       }
       case "statement": {
-        compiled += `${node.content}\n`;
+        write(`${node.content}\n`);
         break;
       }
-      case "blockOpen": {
-        compiled += `${node.content}\n`;
-        if (node.context.isRoot) {
-          compiled += `let ${RESULT} = '';\n`;
+      case "templateMarker": {
+        if (node.context.marker === "start") {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          indent = getLeadingIndentation(prevNode?.content ?? "");
+          write(`(() => {\n`);
+          indent += "  ";
+          write(`let ${RESULT} = '';\n`);
+        } else {
+          write(`return ${RESULT};\n`);
+          write(`})()`);
+          indent = "";
         }
-        break;
-      }
-      case "blockClose": {
-        if (node.context.isRoot) {
-          compiled += `return ${RESULT};\n`;
-        }
-        compiled += `${node.content}\n`;
         break;
       }
       default: {

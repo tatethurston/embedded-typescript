@@ -1,6 +1,6 @@
-import { render } from "./template-3.ets";
+import { render } from "./template-6.ets";
 
-describe("template-3", () => {
+describe("template-6", () => {
   it("renders OUTPUT1", () => {
     const input = { name: "Tate", type: "user" as const };
     expect(render(input)).toMatchInlineSnapshot(`

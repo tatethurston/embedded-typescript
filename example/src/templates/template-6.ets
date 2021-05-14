@@ -5,9 +5,9 @@ interface Account {
   type: AccountType;
 }
 
-export const render = ({ name, type}: Account): string => <%>
-Hello <%= name %>, you are <%
-  switch (type) { %>
+export const render = ({ name, type}: Account): string => {
+  const userMessage = <%>
+<% switch (type) { %>
   <% case 'user': { %>
 a user!
   <% break; } %>
@@ -21,5 +21,8 @@ an enterprise user!
     const exhaust: never = type;
     return exhaust;
    } %>
-  <% } %>
+<% } %>
 <%>
+
+  return <%>Hello <%= name %>, you are <%= userMessage %><%>
+}

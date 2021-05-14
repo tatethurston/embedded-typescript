@@ -41,28 +41,35 @@ When using a typed language, I want my templates to be type checked. For most ca
 
 ## Notable deviations from prior art
 
-Top level `<% CODE %>` blocks must be defined around any text. This enables complete control over the namespace: you explicitly specify exports and their type signature . This also enables using `import` to pull in any helpers, utilities or partials.
+A templating region is delimited with `<%>`. This symbol is used to both start and end a templated region. Outside of a templating region any text is treated as regular TypeScript. This enables complete control over the namespace: you explicitly specify exports and their type signature. Because it's regular TypeScript outside of a templated region, you can `import` any helpers, utilities or partials. If you've worked with JSX things should feel familiar.
 
 This templating system does _not_ perform any HTML escaping. You can `import` any self authored or 3rd party HTML escaping utilities in your template, and call that directly on any untrusted input.
 
 ## Syntax
 
-`<%= EXPRESSION %>` — Inserts the value of an expression.
+`<%>` — Begin or end a templated region. The syntax below is only valid inside a templated region.
 
-`<% CODE %>` — Executes code, but does not insert a value. Trims the preceding indentation and the following line break if placed on it's own line.
+`<%= EXPRESSION %>` — Inserts the value of an expression. If the expression generates multiple lines, the indentation level is preserved across all resulting lines.
+
+`<% CODE %>` — Executes code, but does not insert a value.
+
+`TEXT` - Text literals are inserted as is. All white space is preserved.
 
 ## Examples 🚀
 
 1. Write a template file: `my-template.ets`:
 
 ```
-<% type User = { name: string; } %>
+interface User {
+  name: string;
+}
 
-<% export function render(users: User[]): string { %>
-  <% users.forEach(function(user) { %>
+export function render(users: User[]): string {
+  return <%>
+    <% users.forEach(function(user) { %>
 Name: <%= user.name %>
-  <% }) %>
-<% } %>
+    <% }) %>
+  <%>
 ```
 
 2. Run the compiler: `yarn ets`. This will compile any files with the `.ets` extension. `my-template.ets.ts` will be generated.
@@ -91,11 +98,11 @@ The compiler will output errors when it encounters invalid syntax:
 
 ```
 error: Unexpected closing tag '%>'
-   --> ./template-1.ets:2:54
+   --> ./template-1.ets:4:41
     |
-2   | <% export function render(users: User[]): string { %>%>
-    |                                                      ^
-    |                                                      |
+4   | <% users.forEach(function(user) { %>%>
+    |                                     ^
+    |                                     |
 ...
 ```
 
