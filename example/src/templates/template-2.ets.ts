@@ -5,13 +5,17 @@ type Account = {
   name: string;
   needsPasswordReset: boolean;
 }
+
 export function render({ name, needsPasswordReset }: Account): string {
-let result = '';
-result += 'Hello ';
-result += name;
-result += '!\n';
-if (needsPasswordReset) {
-result += 'You need to update your password.\n';
+  return (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  name;
+  result += '!\n';
+  if (needsPasswordReset) {
+  result += 'You need to update your password.\n';
+  }
+  return result;
+  })()
 }
-return result;
-}
+

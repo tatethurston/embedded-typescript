@@ -2,10 +2,11 @@
 // Source: ./template-4.ets
 
 import { uppercase } from './helpers';
-export function render(name: string): string {
-let result = '';
-result += 'Hello ';
-result += uppercase(name);
-result += '!\n';
-return result;
-}
+
+export const render = (name: string): string => (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  uppercase(name);
+  result += '!';
+  return result;
+  })()

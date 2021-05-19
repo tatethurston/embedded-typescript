@@ -1,4 +1,10 @@
-import { sanitizeString, trimLeading, trimLagging } from ".";
+import {
+  sanitizeString,
+  trimLeadingIndentation,
+  trimLaggingNewline,
+  getLeadingIndentation,
+  trimLeadingIndentationAndNewline,
+} from ".";
 
 describe(sanitizeString, () => {
   it.each([
@@ -14,7 +20,27 @@ is`,
   });
 });
 
-describe(trimLeading, () => {
+describe(getLeadingIndentation, () => {
+  it.each([
+    ["t", ""],
+    [" t", ""],
+    ["t  ", ""],
+    ["  ", "  "],
+    [
+      `
+       `,
+      "       ",
+    ],
+    ["\t  ", "\t  "],
+    ["\n\n  ", "  "],
+    ["\n\n\n", ""],
+    ["\n\t  ", "\t  "],
+  ])("getLeadingIndentation(%s)", (input, expected) => {
+    expect(getLeadingIndentation(input)).toEqual(expected);
+  });
+});
+
+describe(trimLeadingIndentation, () => {
   it.each([
     ["t", "t"],
     [" t", " t"],
@@ -29,18 +55,39 @@ describe(trimLeading, () => {
     ["\n\n  ", "\n\n"],
     ["\n\n\n", "\n\n\n"],
     ["\n\t  ", "\n"],
-  ])("trimLeading(%s)", (input, expected) => {
-    expect(trimLeading(input)).toEqual(expected);
+  ])("trimLeadingIndentation(%s)", (input, expected) => {
+    expect(trimLeadingIndentation(input)).toEqual(expected);
   });
 });
 
-describe(trimLagging, () => {
+describe(trimLaggingNewline, () => {
   it.each([
     ["t", "t"],
     ["  t", "  t"],
     ["   \n", ""],
     ["  \n\n", "\n"],
-  ])("trimLagging(%s)", (input, expected) => {
-    expect(trimLagging(input)).toEqual(expected);
+  ])("trimLaggingNewline(%s)", (input, expected) => {
+    expect(trimLaggingNewline(input)).toEqual(expected);
+  });
+});
+
+describe(trimLeadingIndentationAndNewline, () => {
+  it.each([
+    ["t", "t"],
+    [" t", " t"],
+    ["t  ", "t  "],
+    ["  ", ""],
+    [
+      `
+       `,
+      "",
+    ],
+    ["\t  ", ""],
+    ["\n\n  ", "\n"],
+    ["\n\n\n", "\n\n"],
+    ["\n\t  ", ""],
+    ["\n", ""],
+  ])("trimLeadingIndentationAndNewline(%s)", (input, expected) => {
+    expect(trimLeadingIndentationAndNewline(input)).toEqual(expected);
   });
 });

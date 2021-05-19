@@ -40,97 +40,51 @@ var import_path = __toModule(require("path"));
 function sanitizeString(token) {
   return token.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 }
-var PRECEDING_INDENTATION_FIRST_LINE = /^[^\S\n]+$/;
-var PRECEDING_INDENTATION_SUBSEQUENT_LINE = /\n[^\S\n]+$/;
-var UP_TO_LINE_BREAK = /^[^\S\n]*\n/;
-function trimLeading(token) {
-  if (token.match(PRECEDING_INDENTATION_FIRST_LINE)) {
-    return token.replace(PRECEDING_INDENTATION_FIRST_LINE, "");
-  }
-  return token.replace(PRECEDING_INDENTATION_SUBSEQUENT_LINE, "\n");
+var INDENTATION_TO_END_LINE_0 = /^[^\S\n]+$/;
+var INDENTATION_TO_END_LINE_N = /\n([^\S\n]*)$/;
+var START_TO_LINE_BREAK = /^[^\S\n]*\n/;
+function getLeadingIndentation(token) {
+  var _a, _b, _c, _d;
+  return (_d = (_c = (_a = token.match(INDENTATION_TO_END_LINE_0)) == null ? void 0 : _a[0]) != null ? _c : (_b = token.match(INDENTATION_TO_END_LINE_N)) == null ? void 0 : _b[1]) != null ? _d : "";
 }
-function trimLagging(token) {
-  return token.replace(UP_TO_LINE_BREAK, "");
+function trimLeadingIndentation(token) {
+  if (token.match(INDENTATION_TO_END_LINE_0)) {
+    return token.replace(INDENTATION_TO_END_LINE_0, "");
+  }
+  return token.replace(INDENTATION_TO_END_LINE_N, "\n");
+}
+function trimLaggingNewline(token) {
+  return token.replace(START_TO_LINE_BREAK, "");
+}
+function trimLeadingIndentationAndNewline(token) {
+  if (token.match(INDENTATION_TO_END_LINE_0)) {
+    return token.replace(INDENTATION_TO_END_LINE_0, "");
+  }
+  return token.replace(INDENTATION_TO_END_LINE_N, "");
 }
 
 // ../parser/src/utils/index.ts
 function isPresent(idx) {
   return idx !== -1;
 }
-function isWhitespace(token) {
-  return token.replace(/\s+/g, "").length === 0;
-}
-var PAIRS = {
-  "}": "{",
-  "]": "[",
-  ")": "("
-};
-var OPEN_TOKENS = Object.values(PAIRS);
-var CLOSE_TOKENS = Object.keys(PAIRS);
-function blockTracker() {
-  const blocks = [];
-  function digest(input) {
-    let change = 0;
-    input.split("").forEach((token) => {
-      if (OPEN_TOKENS.includes(token)) {
-        change += 1;
-        blocks.push(token);
-      }
-      if (CLOSE_TOKENS.includes(token)) {
-        const last = blocks.pop();
-        change -= 1;
-        if (!last) {
-          throw new Error(`Unexpected '${token}'`);
-        }
-        if (PAIRS[token] !== last) {
-          throw new Error(`Expected '${last}' but found '${token}'`);
-        }
-      }
-    });
-    if (change > 0) {
-      return "open";
-    }
-    if (change < 0) {
-      return "close";
-    }
-    return "balanced";
-  }
-  function isOpen() {
-    return blocks.length > 0;
-  }
-  return {
-    blocks,
-    digest,
-    isOpen
-  };
-}
 
 // ../parser/src/index.ts
+var TEMPLATE_MARKER = "<%>";
 var OPEN = "<%";
 var CLOSE = "%>";
 var EXPRESSION = "=";
-var TRIM = "-";
 function isExpression(token) {
   return token.startsWith(EXPRESSION);
 }
-function hasLeadingTrim(token) {
-  return token.startsWith(TRIM);
-}
-function hasLaggingTrim(token) {
-  return token.endsWith(TRIM);
-}
 function stripModifierToken(token) {
   let stripped = token;
-  if (isExpression(token) || hasLeadingTrim(token)) {
+  if (isExpression(token)) {
     stripped = stripped.slice(1);
-  }
-  if (hasLaggingTrim(token)) {
-    stripped = stripped.slice(0, -1);
   }
   return stripped;
 }
 function isParseError(parsed) {
-  return typeof parsed === "object" && "error" in parsed;
+  return typeof parsed === "object" && parsed != null && "error" in parsed;
 }
 function lineAndColumn(template, index) {
   var _a, _b;
@@ -172,160 +126,170 @@ function parseError({
 }
 function parse(template) {
   const parsed = [];
-  const block = blockTracker();
   let position = 0;
   while (position < template.length) {
-    const openIdx = template.indexOf(OPEN, position);
-    const closeIdx = template.indexOf(CLOSE, position);
-    if (!isPresent(openIdx) && !isPresent(closeIdx)) {
-      const text2 = template.slice(position);
-      if (isWhitespace(text2)) {
+    const templateStartIdx = template.indexOf(TEMPLATE_MARKER, position);
+    const templateRegionStart = templateStartIdx + TEMPLATE_MARKER.length;
+    if (!isPresent(templateStartIdx)) {
+      parsed.push({
+        type: "untemplated",
+        content: template.slice(position)
+      });
+      break;
+    }
+    const templateEndIdx = template.indexOf(TEMPLATE_MARKER, templateRegionStart);
+    const templateRegionEnd = templateEndIdx;
+    if (isPresent(templateStartIdx) && !isPresent(templateEndIdx)) {
+      return parseError({
+        error: `Expected to find corresponding closing tag '${TEMPLATE_MARKER}' before end of file`,
+        template,
+        startIdx: templateStartIdx,
+        endIdx: template.length - 1
+      });
+    }
+    const text = template.slice(position, templateStartIdx);
+    if (text.length) {
+      parsed.push({type: "untemplated", content: text});
+    }
+    parsed.push({
+      type: "templateMarker",
+      content: "",
+      context: {
+        marker: "start"
+      }
+    });
+    position = templateRegionStart;
+    while (position < templateRegionEnd) {
+      const region = template.slice(0, templateRegionEnd);
+      const openIdx = region.indexOf(OPEN, position);
+      const closeIdx = region.indexOf(CLOSE, position);
+      if (!isPresent(openIdx) && isPresent(closeIdx) || isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx) {
+        return parseError({
+          error: `Unexpected closing tag '${CLOSE}'`,
+          template,
+          startIdx: closeIdx,
+          endIdx: closeIdx + CLOSE.length - 1
+        });
+      }
+      if (isPresent(openIdx) && !isPresent(closeIdx)) {
+        return parseError({
+          error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
+          template,
+          startIdx: openIdx,
+          endIdx: templateRegionEnd
+        });
+      }
+      const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
+      if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
+        return parseError({
+          error: `Unexpected opening tag '${OPEN}'`,
+          template,
+          startIdx: nextOpenIdx,
+          endIdx: nextOpenIdx + OPEN.length - 1
+        });
+      }
+      if (!isPresent(openIdx) && !isPresent(closeIdx)) {
+        parsed.push({
+          type: "text",
+          content: region.slice(position, templateRegionEnd)
+        });
         break;
       }
-      const firstCharacterIndex = position + text2.search(/\S/);
-      return parseError({
-        error: "Expected text to be inside a block",
-        template,
-        startIdx: firstCharacterIndex,
-        endIdx: template.length - 1
-      });
-    }
-    if (!isPresent(openIdx) && isPresent(closeIdx) || isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx) {
-      return parseError({
-        error: `Unexpected closing tag '${CLOSE}'`,
-        template,
-        startIdx: closeIdx,
-        endIdx: closeIdx + CLOSE.length - 1
-      });
-    }
-    if (isPresent(openIdx) && !isPresent(closeIdx)) {
-      return parseError({
-        error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
-        template,
-        startIdx: openIdx,
-        endIdx: template.length - 1
-      });
-    }
-    const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
-    if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
-      return parseError({
-        error: `Unexpected opening tag '${OPEN}'`,
-        template,
-        startIdx: nextOpenIdx,
-        endIdx: nextOpenIdx + OPEN.length - 1
-      });
-    }
-    const text = template.slice(position, openIdx);
-    if (block.isOpen()) {
-      parsed.push({type: "text", content: text});
-    } else if (!isWhitespace(text)) {
-      const firstCharacterIndex = position + text.search(/\S/);
-      return parseError({
-        error: "Expected text to be inside a block",
-        template,
-        startIdx: firstCharacterIndex,
-        endIdx: template.length - 1
-      });
-    }
-    const code = template.slice(openIdx + OPEN.length, closeIdx).trim();
-    const content = stripModifierToken(code).trim();
-    if (isExpression(code)) {
-      parsed.push({
-        type: "expression",
-        content,
-        context: {trimLagging: hasLaggingTrim(code)}
-      });
-    } else {
-      const wasAlreadyOpen = block.isOpen();
-      const state = block.digest(content);
-      switch (state) {
-        case "open": {
-          parsed.push({
-            type: "blockOpen",
-            content,
-            context: {
-              isRoot: !wasAlreadyOpen
-            }
-          });
-          break;
-        }
-        case "close": {
-          const isRoot = block.blocks.length === 0;
-          parsed.push({
-            type: "blockClose",
-            content,
-            context: {
-              isRoot
-            }
-          });
-          break;
-        }
-        case "balanced": {
-          parsed.push({type: "statement", content});
-          break;
-        }
-        default: {
-          const exhaust = state;
-          return exhaust;
-        }
+      const text2 = template.slice(position, openIdx);
+      if (text2.length) {
+        parsed.push({type: "text", content: text2});
       }
+      const code = template.slice(openIdx + OPEN.length, closeIdx).trim();
+      if (isExpression(code)) {
+        parsed.push({
+          type: "expression",
+          content: stripModifierToken(code)
+        });
+      } else {
+        parsed.push({type: "statement", content: code});
+      }
+      position = closeIdx + CLOSE.length;
     }
-    position = closeIdx + CLOSE.length;
+    position = templateRegionEnd + TEMPLATE_MARKER.length;
+    parsed.push({
+      type: "templateMarker",
+      content: "",
+      context: {
+        marker: "end"
+      }
+    });
   }
   return parsed;
 }
 
 // ../compiler/src/index.ts
-function isStatementNode(node) {
-  return ["statement", "blockOpen", "blockClose"].includes(node.type);
-}
 var RESULT = "result";
 function compile(nodes) {
   let compiled = "";
+  let indent = "";
+  function write(text) {
+    compiled += indent + text;
+  }
+  function preserveIndentation(text, indentation) {
+    return text.toString().split("\n").map((line, idx) => idx === 0 ? line : indentation + line).join("\n");
+  }
   nodes.forEach((node, idx) => {
+    var _a, _b;
+    const prevNode = nodes[idx - 1];
+    const nextNode = nodes[idx + 1];
     switch (node.type) {
+      case "untemplated": {
+        write(node.content);
+        break;
+      }
       case "text": {
         let content = node.content;
-        const prevNode = nodes[idx - 1];
-        if (prevNode && (isStatementNode(prevNode) || prevNode.type === "expression" && prevNode.context.trimLagging)) {
-          content = trimLagging(content);
+        if ((prevNode == null ? void 0 : prevNode.type) === "statement") {
+          content = trimLaggingNewline(content);
+        } else if ((prevNode == null ? void 0 : prevNode.type) === "templateMarker" && prevNode.context.marker === "start") {
+          content = trimLaggingNewline(content);
         }
-        const nextNode = nodes[idx + 1];
-        if (nextNode && isStatementNode(nextNode)) {
-          content = trimLeading(content);
+        if ((nextNode == null ? void 0 : nextNode.type) === "statement") {
+          content = trimLeadingIndentation(content);
+        } else if ((nextNode == null ? void 0 : nextNode.type) === "templateMarker" && nextNode.context.marker === "end") {
+          content = trimLeadingIndentationAndNewline(content);
         }
         if (content) {
-          compiled += `${RESULT} += '${sanitizeString(content)}';
-`;
+          write(`${RESULT} += '${sanitizeString(content)}';
+`);
         }
         break;
       }
       case "expression": {
-        compiled += `${RESULT} += ${node.content};
-`;
+        const indentation = getLeadingIndentation((_a = prevNode.content) != null ? _a : "");
+        if (!indentation) {
+          write(`${RESULT} += ${node.content};
+`);
+        } else {
+          write(`${RESULT} += (${preserveIndentation.toString()})(${node.content}, '${indentation}');
+`);
+        }
         break;
       }
       case "statement": {
-        compiled += `${node.content}
-`;
+        write(`${node.content}
+`);
         break;
       }
-      case "blockOpen": {
-        compiled += `${node.content}
-`;
-        if (node.context.isRoot) {
-          compiled += `let ${RESULT} = '';
-`;
+      case "templateMarker": {
+        if (node.context.marker === "start") {
+          indent = getLeadingIndentation((_b = prevNode == null ? void 0 : prevNode.content) != null ? _b : "");
+          write(`(() => {
+`);
+          indent += "  ";
+          write(`let ${RESULT} = '';
+`);
+        } else {
+          write(`return ${RESULT};
+`);
+          write(`})()`);
+          indent = "";
         }
-        break;
-      }
-      case "blockClose": {
-        if (node.context.isRoot) {
-          compiled += `return ${RESULT};
-`;
-        }
-        compiled += `${node.content}
-`;
         break;
       }
       default: {

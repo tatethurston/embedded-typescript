@@ -1,4 +1,4 @@
-import { blockTracker, isPresent, isWhitespace } from "./utils";
+import { isPresent } from "./utils";
 
 type BaseNode<T extends string, Ctx = void> = Ctx extends void
   ? {
@@ -11,65 +11,55 @@ type BaseNode<T extends string, Ctx = void> = Ctx extends void
       context: Ctx;
     };
 
-type Context = {
-  isRoot: boolean;
-  trimLagging: boolean;
-};
+export type TemplateMarkerNode = BaseNode<
+  "templateMarker",
+  {
+    marker: "start" | "end";
+  }
+>;
+
+export type UntemplatedNode = BaseNode<"untemplated">;
 
 export type TextNode = BaseNode<"text">;
 
-export type ExpressionNode = BaseNode<
-  "expression",
-  Pick<Context, "trimLagging">
->;
+export type ExpressionNode = BaseNode<"expression">;
 
 export type StatementNode = BaseNode<"statement">;
 
-export type BlockNode = BaseNode<
-  "blockOpen" | "blockClose",
-  Pick<Context, "isRoot">
->;
+export type Node =
+  | UntemplatedNode
+  | TemplateMarkerNode
+  | TextNode
+  | ExpressionNode
+  | StatementNode;
 
-export type Node = TextNode | ExpressionNode | StatementNode | BlockNode;
-
-type Range = {
+interface Range {
   line: number;
   column: number;
-};
+}
 
-export type ParseError = {
+export interface ParseError {
   error: string;
   position: {
     start: Range;
     end: Range;
   };
   context: string;
-};
+}
 
+const TEMPLATE_MARKER = "<%>";
 const OPEN = "<%";
 const CLOSE = "%>";
 const EXPRESSION = "=";
-const TRIM = "-";
 
 function isExpression(token: string): boolean {
   return token.startsWith(EXPRESSION);
 }
 
-function hasLeadingTrim(token: string): boolean {
-  return token.startsWith(TRIM);
-}
-
-function hasLaggingTrim(token: string): boolean {
-  return token.endsWith(TRIM);
-}
-
 function stripModifierToken(token: string): string {
   let stripped = token;
-  if (isExpression(token) || hasLeadingTrim(token)) {
+  if (isExpression(token)) {
     stripped = stripped.slice(1);
-  }
-  if (hasLaggingTrim(token)) {
-    stripped = stripped.slice(0, -1);
   }
   return stripped;
 }
@@ -131,134 +121,121 @@ function parseError({
 
 export function parse(template: string): Node[] | ParseError {
   const parsed: Node[] = [];
-  const block = blockTracker();
 
   let position = 0;
   while (position < template.length) {
-    const openIdx = template.indexOf(OPEN, position);
-    const closeIdx = template.indexOf(CLOSE, position);
+    const templateStartIdx = template.indexOf(TEMPLATE_MARKER, position);
+    const templateRegionStart = templateStartIdx + TEMPLATE_MARKER.length;
 
-    if (!isPresent(openIdx) && !isPresent(closeIdx)) {
-      const text = template.slice(position);
-      if (isWhitespace(text)) {
+    if (!isPresent(templateStartIdx)) {
+      parsed.push({
+        type: "untemplated",
+        content: template.slice(position),
+      });
+      break;
+    }
+
+    const templateEndIdx = template.indexOf(
+      TEMPLATE_MARKER,
+      templateRegionStart
+    );
+    const templateRegionEnd = templateEndIdx;
+    if (isPresent(templateStartIdx) && !isPresent(templateEndIdx)) {
+      return parseError({
+        error: `Expected to find corresponding closing tag '${TEMPLATE_MARKER}' before end of file`,
+        template,
+        startIdx: templateStartIdx,
+        endIdx: template.length - 1,
+      });
+    }
+
+    // text before template start
+    const text = template.slice(position, templateStartIdx);
+    if (text.length) {
+      parsed.push({ type: "untemplated", content: text });
+    }
+
+    parsed.push({
+      type: "templateMarker",
+      content: "",
+      context: {
+        marker: "start",
+      },
+    });
+    position = templateRegionStart;
+
+    while (position < templateRegionEnd) {
+      const region = template.slice(0, templateRegionEnd);
+      const openIdx = region.indexOf(OPEN, position);
+      const closeIdx = region.indexOf(CLOSE, position);
+
+      if (
+        (!isPresent(openIdx) && isPresent(closeIdx)) ||
+        (isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx)
+      ) {
+        return parseError({
+          error: `Unexpected closing tag '${CLOSE}'`,
+          template,
+          startIdx: closeIdx,
+          endIdx: closeIdx + CLOSE.length - 1,
+        });
+      }
+
+      if (isPresent(openIdx) && !isPresent(closeIdx)) {
+        return parseError({
+          error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
+          template,
+          startIdx: openIdx,
+          endIdx: templateRegionEnd,
+        });
+      }
+
+      const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
+      if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
+        return parseError({
+          error: `Unexpected opening tag '${OPEN}'`,
+          template,
+          startIdx: nextOpenIdx,
+          endIdx: nextOpenIdx + OPEN.length - 1,
+        });
+      }
+
+      if (!isPresent(openIdx) && !isPresent(closeIdx)) {
+        parsed.push({
+          type: "text",
+          content: region.slice(position, templateRegionEnd),
+        });
         break;
       }
-
-      // first non whitespace character
-      const firstCharacterIndex = position + text.search(/\S/);
-      return parseError({
-        error: "Expected text to be inside a block",
-        template,
-        startIdx: firstCharacterIndex,
-        // TODO: end of characters (not whitespace) before open tag
-        endIdx: template.length - 1,
-      });
-    }
-
-    if (
-      (!isPresent(openIdx) && isPresent(closeIdx)) ||
-      (isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx)
-    ) {
-      return parseError({
-        error: `Unexpected closing tag '${CLOSE}'`,
-        template,
-        startIdx: closeIdx,
-        endIdx: closeIdx + CLOSE.length - 1,
-      });
-    }
-
-    if (isPresent(openIdx) && !isPresent(closeIdx)) {
-      return parseError({
-        error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
-        template,
-        startIdx: openIdx,
-        endIdx: template.length - 1,
-      });
-    }
-
-    const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
-    if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
-      return parseError({
-        error: `Unexpected opening tag '${OPEN}'`,
-        template,
-        startIdx: nextOpenIdx,
-        endIdx: nextOpenIdx + OPEN.length - 1,
-      });
-    }
-
-    // text before template code
-    const text = template.slice(position, openIdx);
-    if (block.isOpen()) {
-      parsed.push({ type: "text", content: text });
-    } else if (!isWhitespace(text)) {
-      // first non whitespace character
-      const firstCharacterIndex = position + text.search(/\S/);
-      return parseError({
-        error: "Expected text to be inside a block",
-        template,
-        startIdx: firstCharacterIndex,
-        // TODO: end of characters (not whitespace) before open tag
-        endIdx: template.length - 1,
-      });
-    }
-
-    // template code
-    const code = template.slice(openIdx + OPEN.length, closeIdx).trim();
-    const content = stripModifierToken(code).trim();
-    if (isExpression(code)) {
-      parsed.push({
-        type: "expression",
-        content,
-        context: { trimLagging: hasLaggingTrim(code) },
-      });
-    } else {
-      const wasAlreadyOpen = block.isOpen();
-      const state = block.digest(content);
-
-      switch (state) {
-        case "open": {
-          parsed.push({
-            type: "blockOpen",
-            content,
-            context: {
-              isRoot: !wasAlreadyOpen,
-            },
-          });
-          break;
-        }
-        case "close": {
-          const isRoot = block.blocks.length === 0;
-          parsed.push({
-            type: "blockClose",
-            content,
-            context: {
-              isRoot,
-            },
-          });
-          break;
-        }
-        case "balanced": {
-          parsed.push({ type: "statement", content });
-          break;
-        }
-        default: {
-          const exhaust: never = state;
-          return exhaust;
-        }
+      // text before open tag
+      const text = template.slice(position, openIdx);
+      if (text.length) {
+        parsed.push({ type: "text", content: text });
       }
+
+      const code = template.slice(openIdx + OPEN.length, closeIdx).trim();
+      if (isExpression(code)) {
+        parsed.push({
+          type: "expression",
+          content: stripModifierToken(code),
+        });
+      } else {
+        parsed.push({ type: "statement", content: code });
+      }
+
+      position = closeIdx + CLOSE.length;
     }
-    position = closeIdx + CLOSE.length;
+
+    position = templateRegionEnd + TEMPLATE_MARKER.length;
+
+    parsed.push({
+      type: "templateMarker",
+      content: "",
+      context: {
+        marker: "end",
+      },
+    });
   }
 
-  // TODO: This does not handle escaped tags
-  // Probably will want to consume TS as a peer dependency. Then we can also surface TS errors.
-  //
-  //if (block.isOpen()) {
-  //  return {
-  //    error: `Expected closing tags for '${block.blocks.join(", ")}'`,
-  //    position: lineAndColumn(template, position),
-  //    context: "",
-  //  };
-  //}
   return parsed;
 }
