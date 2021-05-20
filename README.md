@@ -41,7 +41,7 @@ When using a typed language, I want my templates to be type checked. For most ca
 
 ## Syntax
 
-`<%>` — Begin or end a templated region. The remaining syntax below is only valid inside a templated region.
+`<%>` — Begin or end a templated region. The syntax below is only valid inside a templated region.
 
 `<%= EXPRESSION %>` — Inserts the value of an expression. If the expression generates multiple lines, the indentation level is preserved across all resulting lines.
 
