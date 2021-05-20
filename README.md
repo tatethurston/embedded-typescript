@@ -37,7 +37,7 @@ Checkout the [examples](#examples-) or [play with embedded-typescript in your br
 
 `Hello undefined!`
 
-When using a typed language, I want my templates to be type checked. For most cases, [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) work well. If I'm writing XML, [JSX](https://www.typescriptlang.org/docs/handbook/jsx.html) works well. When I have complicated non-XML templates, template literals become difficult to maintain. I can use ejs/hbs/mustache/etc, but then I lose the type safety I had with template literals. Sometimes I want the expressiveness of a templating language without losing type safety. For those cases, I wrote `embedded-typescript`.
+When using a typed language, I want my templates to be type checked. For most cases, [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) work well. If I'm writing HTML/XML, [JSX](https://www.typescriptlang.org/docs/handbook/jsx.html) works well. When I have complicated non-HTML/XML templates, template literals become difficult to maintain. I can use ejs/hbs/mustache/etc, but then I lose the type safety I had with template literals. Sometimes I want the expressiveness of a templating language without losing type safety. For those cases, I wrote `embedded-typescript`.
 
 ## Syntax
 
@@ -89,7 +89,7 @@ For more examples, take a look at the [example directory](https://github.com/tat
 
 The compiler will output errors when it encounters invalid syntax:
 
-```sh
+```
 error: Unexpected closing tag '%>'
    --> ./template-1.ets:4:41
     |
