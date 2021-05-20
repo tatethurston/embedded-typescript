@@ -39,15 +39,9 @@ Checkout the [examples](#examples-) or [play with embedded-typescript in your br
 
 When using a typed language, I want my templates to be type checked. For most cases, [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) work well. If I'm writing XML, [JSX](https://www.typescriptlang.org/docs/handbook/jsx.html) works well. When I have complicated non-XML templates, template literals become difficult to maintain. I can use ejs/hbs/mustache/etc, but then I lose the type safety I had with template literals. Sometimes I want the expressiveness of a templating language without losing type safety. For those cases, I wrote `embedded-typescript`.
 
-## Notable deviations from prior art
-
-A templating region is delimited with `<%>`. This symbol is used to both start and end a templated region. Outside of a templating region any text is treated as regular TypeScript. This enables complete control over the namespace: you explicitly specify exports and their type signature. Because it's regular TypeScript outside of a templated region, you can `import` any helpers, utilities or partials. If you've worked with JSX things should feel familiar.
-
-This templating system does _not_ perform any HTML escaping. You can `import` any self authored or 3rd party HTML escaping utilities in your template, and call that directly on any untrusted input.
-
 ## Syntax
 
-`<%>` — Begin or end a templated region. The syntax below is only valid inside a templated region.
+`<%>` — Begin or end a templated region. The remaining syntax below is only valid inside a templated region.
 
 `<%= EXPRESSION %>` — Inserts the value of an expression. If the expression generates multiple lines, the indentation level is preserved across all resulting lines.
 
@@ -59,7 +53,7 @@ This templating system does _not_ perform any HTML escaping. You can `import` an
 
 1. Write a template file: `my-template.ets`:
 
-```
+```typescript
 interface User {
   name: string;
 }
@@ -70,22 +64,21 @@ export function render(users: User[]): string {
 Name: <%= user.name %>
     <% }) %>
   <%>
+}
 ```
 
 2. Run the compiler: `yarn ets`. This will compile any files with the `.ets` extension. `my-template.ets.ts` will be generated.
 
 3. Import from the generated `.ets.ts` file:
 
-```
+```typescript
 import { render } from "./template-1.ets";
 
 // will output:
 // Name: Alice
 // Name: Bob
-console.log(render([
-  { name: "Alice" },
-  { name: "Bob" },
-]))
+//
+console.log(render([{ name: "Alice" }, { name: "Bob" }]));
 ```
 
 Note that the arguments to your template function are typechecked. There isn't anything special about the `render` export, in our template file this could have been named anything: `printUserNames`.
@@ -96,7 +89,7 @@ For more examples, take a look at the [example directory](https://github.com/tat
 
 The compiler will output errors when it encounters invalid syntax:
 
-```
+```sh
 error: Unexpected closing tag '%>'
    --> ./template-1.ets:4:41
     |
@@ -111,6 +104,30 @@ The first line is a description of the error that was encountered.
 The second line is location of the error, in `path:line:column` notation.
 
 The next 5 lines provide visual context for the error.
+
+## Notable deviations from prior art
+
+Rather than treating the entire contents of an input file as templated text, `embedded-typescript` templates explicitly indicate templated regions (delimited by`<%>`). This symbol is used to both start and end a templated region. Outside of a templating region file contents are treated as TypeScript. This enables complete control over the namespace: you explicitly specify exports and their type signature. Because it's just TypeScript, outside of a templated region, you can `import` any helpers, utilities, partials, etc. If you've worked with JSX things should feel familiar.
+
+This tool specifically targets text templating, rather than HTML templating. Think: code generation, text message content (emails or SMS), etc. HTML templating is possible with this tool, but I would generally recommend JSX instead for HTML cases.
+
+The templating system does _not_ perform any HTML escaping. You can `import` any self authored or 3rd party HTML escaping utilities in your template, and call that directly on any untrusted input:
+
+```typescript
+import htmlescape from 'htmlescape';
+
+interface User {
+  name: string;
+}
+
+export function render(users: User[]): string {
+  return <%>
+    <% users.forEach(function(user) { %>
+<p>Name: <%= htmlescape(user.name) %></p>
+    <% }) %>
+  <%>
+}
+```
 
 ## Highlights
 
