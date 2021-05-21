@@ -51,6 +51,8 @@ When using a typed language, I want my templates to be type checked. For most ca
 
 ## Examples 🚀
 
+### Minimal
+
 1. Write a template file: `my-template.ets`:
 
 ```typescript
@@ -72,13 +74,105 @@ Name: <%= user.name %>
 3. Import from the generated `.ets.ts` file:
 
 ```typescript
-import { render } from "./template-1.ets";
+import { render } from "./my-template.ets";
 
 // will output:
-// Name: Alice
-// Name: Bob
-//
+/*
+Name: Alice
+Name: Bob
+/*
 console.log(render([{ name: "Alice" }, { name: "Bob" }]));
+```
+
+### Partials
+
+1. Optionally write a "partial" `user-partial.ets`:
+
+```typescript
+export interface User {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export function render(user: User): string {
+  return <%>
+Name: <%= user.name %>
+Email: <%= user.email %>
+Phone: <%= user.phone %>
+  <%>
+}
+```
+
+2. Import your "partial" in `my-template-2.ets`:
+
+```typescript
+import { render as renderUser, User } from './user-partial.ets';
+
+const example =
+`1
+2
+3
+4`;
+
+export function render(users: User[]): string {
+  return <%>
+<% if (users.length > 0) { %>
+Here is a list of users:
+  <% users.forEach(function(user) { %>
+
+  <%= renderUser(user) %>
+  <% }) %>
+
+<% } %>
+The indentation level is preserved for the rendered 'partial'.
+
+There isn't anything special about the 'partial'. Here we used another ets template, but any
+expression yeilding a multiline string would be treated the same.
+
+  <%= example %>
+
+The end!
+  <%>
+}
+```
+
+3. Import your template:
+
+```typescript
+import { render } from "./my-template-1.ets";
+
+// will output:
+/*
+Here is a list of users:
+
+  Name: Tate
+  Email: tate@tate.com
+  Phone: 888-888-8888
+
+  Name: Emily
+  Email: emily@emily.com
+  Phone: 777-777-7777
+
+The indentation level is preserved for the rendered 'partial'.
+
+There isn't anything special about the 'partial'. Here we used another ets template, but any
+expression yeilding a multiline string would be treated the same.
+
+  1
+  2
+  3
+  4
+
+The end!
+*/
+
+console.log(
+  render([
+    { name: "Tate", phone: "888-888-8888", email: "tate@tate.com" },
+    { name: "Emily", phone: "777-777-7777", email: "emily@emily.com" },
+  ])
+);
 ```
 
 Note that the arguments to your template function are typechecked. There isn't anything special about the `render` export, in our template file this could have been named anything: `printUserNames`.

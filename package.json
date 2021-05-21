@@ -3,7 +3,7 @@
   "scripts": {
     "lint": "yarn typecheck && prettier --check . && prettier-package-json --list-different '{,example/,packages/**/}package.json' && eslint .",
     "lint:fix": "prettier --write . && prettier-package-json --write '{,example/,packages/**/}package.json' && eslint --fix .",
-    "test": "yarn jest 'packages/*' && yarn workspace embedded-typescript run build && yarn workspace @ets/example run test",
+    "test": "yarn jest 'packages/*' && yarn workspace embedded-typescript run build && (cd example && yarn clean && yarn build && yarn jest)",
     "typecheck": "yarn workspaces run tsc --noEmit"
   },
   "types": "dist",
