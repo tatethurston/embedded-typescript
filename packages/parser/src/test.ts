@@ -2,6 +2,41 @@ import { parse } from ".";
 
 describe(parse, () => {
   describe("errors", () => {
+    it("missing template marker end", () => {
+      expect(
+        parse(`\
+type User = { name: string; }
+
+export function render(users: User[]): string {
+  return <%>
+  %>
+  <% users.forEach(function(user) { %>
+Name: <%= user.name %>
+  <% }) %>
+}`)
+      ).toMatchInlineSnapshot(`
+        Object {
+          "context": "    |
+        4   |   return <%>
+            |          ^
+            |          |
+        ...
+        ",
+          "error": "Expected to find corresponding closing tag '<%>' before end of file",
+          "position": Object {
+            "end": Object {
+              "column": 1,
+              "line": 9,
+            },
+            "start": Object {
+              "column": 10,
+              "line": 4,
+            },
+          },
+        }
+      `);
+    });
+
     it("closing tag before open tag", () => {
       expect(
         parse(`\

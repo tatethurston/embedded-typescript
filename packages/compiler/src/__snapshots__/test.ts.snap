@@ -1,0 +1,226 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`compiler compile(template-1.ets) 1`] = `
+"interface User {
+  name: string;
+}
+
+export function render(users: User[]): string {
+  return (() => {
+  let result = '';
+  users.forEach(function(user) {
+  result += 'Name: ';
+  result +=  user.name;
+  result += '\\\\n';
+  })
+  return result;
+  })()
+}
+"
+`;
+
+exports[`compiler compile(template-2.ets) 1`] = `
+"type Account = {
+  name: string;
+  needsPasswordReset: boolean;
+}
+
+export function render({ name, needsPasswordReset }: Account): string {
+  return (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  name;
+  result += '!\\\\n';
+  if (needsPasswordReset) {
+  result += 'You need to update your password.\\\\n';
+  }
+  return result;
+  })()
+}
+
+"
+`;
+
+exports[`compiler compile(template-3.ets) 1`] = `
+"type AccountType = 'user' | 'admin' | 'enterprise';
+
+interface Account {
+  name: string;
+  type: AccountType;
+}
+
+export const render = ({ name, type}: Account): string => (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  name;
+  result += ', you are ';
+  switch (type) {
+  case 'user': {
+  result += 'a user!\\\\n';
+  break; }
+  case 'admin': {
+  result += 'an admin!\\\\n';
+  break; }
+  case 'enterprise': {
+  result += 'an enterprise user!\\\\n';
+  break; }
+  default: {
+    const exhaust: never = type;
+    return exhaust;
+   }
+  }
+  return result;
+  })()
+"
+`;
+
+exports[`compiler compile(template-4.ets) 1`] = `
+"import { uppercase } from './helpers';
+
+export const render = (name: string): string => (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  uppercase(name);
+  result += '!';
+  return result;
+  })()
+"
+`;
+
+exports[`compiler compile(template-5.ets) 1`] = `
+"type AccountType = 'user' | 'admin' | 'enterprise';
+
+interface Account {
+  name: string;
+  type: AccountType;
+}
+
+export const render = ({ name, type}: Account): string => {
+  let userMessage;
+  switch (type) {
+    case 'user': {
+      userMessage = 'a user!';
+      break;
+    }
+    case 'admin': {
+      userMessage = 'an admin!';
+      break;
+    }
+    case 'enterprise': {
+      userMessage = 'an enterprise user!';
+      break;
+    }
+    default: {
+      const exhaust: never = type;
+      return exhaust;
+   }
+  }
+
+  return (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  name;
+  result += ', you are ';
+  result +=  userMessage;
+  return result;
+  })()
+}
+"
+`;
+
+exports[`compiler compile(template-6.ets) 1`] = `
+"type AccountType = 'user' | 'admin' | 'enterprise';
+
+interface Account {
+  name: string;
+  type: AccountType;
+}
+
+export const render = ({ name, type}: Account): string => {
+  const userMessage = (() => {
+  let result = '';
+  switch (type) {
+  case 'user': {
+  result += 'a user!\\\\n';
+  break; }
+  case 'admin': {
+  result += 'an admin!\\\\n';
+  break; }
+  case 'enterprise': {
+  result += 'an enterprise user!\\\\n';
+  break; }
+  default: {
+    const exhaust: never = type;
+    return exhaust;
+   }
+  }
+  return result;
+  })()
+
+  return (() => {
+  let result = '';
+  result += 'Hello ';
+  result +=  name;
+  result += ', you are ';
+  result +=  userMessage;
+  return result;
+  })()
+}
+"
+`;
+
+exports[`compiler compile(template-7.ets) 1`] = `
+"import { render as renderUser, User } from './user-partial.ets';
+
+const example = 
+\`1
+2
+3
+4\`;
+
+export function render(users: User[]): string {
+  return (() => {
+  let result = '';
+  if (users.length > 0) {
+  result += 'Here is a list of users:\\\\n';
+  users.forEach(function(user) {
+  result += '\\\\n  ';
+  result += (function preserveIndentation(text, indentation) {
+    return text.toString().split(\\"\\\\n\\").map((line, idx) => idx === 0 ? line : indentation + line).join(\\"\\\\n\\");
+  })( renderUser(user), '  ');
+  result += '\\\\n';
+  })
+  result += '\\\\n';
+  }
+  result += 'The indentation level is preserved for the rendered \\\\'partial\\\\'.\\\\n\\\\nThere isn\\\\'t anything special about the \\\\'partial\\\\'. Here we used another ets template, but any\\\\nexpression yeilding a multiline string would be treated the same.\\\\n\\\\n  ';
+  result += (function preserveIndentation(text, indentation) {
+    return text.toString().split(\\"\\\\n\\").map((line, idx) => idx === 0 ? line : indentation + line).join(\\"\\\\n\\");
+  })( example, '  ');
+  result += '\\\\n\\\\nThe end!';
+  return result;
+  })()
+}
+"
+`;
+
+exports[`compiler compile(user-partial.ets) 1`] = `
+"export interface User {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export function render(user: User): string {
+  return (() => {
+  let result = '';
+  result += 'Name: ';
+  result +=  user.name;
+  result += '\\\\nEmail: ';
+  result +=  user.email;
+  result += '\\\\nPhone: ';
+  result +=  user.phone;
+  return result;
+  })()
+}
+"
+`;
