@@ -1,6 +1,6 @@
 {
   "name": "embedded-typescript",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Type safe embedded TypeScript templates",
   "license": "MIT",
   "author": "Tate <tatethurston@gmail.com>",
