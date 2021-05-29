@@ -17,8 +17,9 @@
   "scripts": {
     "build": "esbuild src/index.ts --platform=node --target=node12 --bundle --outfile=dist/index.js",
     "clean": "rm -rf dist",
-    "version": "yarn run build && git add -A package.json",
-    "postversion": "git push && git push --tags"
+    "prepack": "yarn run build && cp ../../README.md .",
+    "postpack": "rm README.md",
+    "postversion": "git add --all package.json && git push && git push --tags"
   },
   "types": "dist",
   "devDependencies": {
