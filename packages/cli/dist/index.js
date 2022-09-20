@@ -32,6 +32,9 @@ var __toModule = (module2) => {
   return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? {get: () => module2.default, enumerable: true} : {value: module2, enumerable: true})), module2);
 };
 
+// src/index.ts
+__markAsModule(exports);
+
 // src/cli.ts
 var import_fs = __toModule(require("fs"));
 var import_path = __toModule(require("path"));
@@ -44,8 +47,7 @@ var INDENTATION_TO_END_LINE_0 = /^[^\S\n]+$/;
 var INDENTATION_TO_END_LINE_N = /\n([^\S\n]*)$/;
 var START_TO_LINE_BREAK = /^[^\S\n]*\n/;
 function getLeadingIndentation(token) {
-  var _a, _b, _c, _d;
-  return (_d = (_c = (_a = token.match(INDENTATION_TO_END_LINE_0)) == null ? void 0 : _a[0]) != null ? _c : (_b = token.match(INDENTATION_TO_END_LINE_N)) == null ? void 0 : _b[1]) != null ? _d : "";
+  return token.match(INDENTATION_TO_END_LINE_0)?.[0] ?? token.match(INDENTATION_TO_END_LINE_N)?.[1] ?? "";
 }
 function trimLeadingIndentation(token) {
   if (token.match(INDENTATION_TO_END_LINE_0)) {
@@ -87,10 +89,9 @@ function isParseError(parsed) {
   return typeof parsed === "object" && parsed != null && "error" in parsed;
 }
 function lineAndColumn(template, index) {
-  var _a, _b;
   const lines = template.slice(0, index).split("\n");
   const line = lines.length;
-  const column = ((_b = (_a = lines.pop()) == null ? void 0 : _a.length) != null ? _b : 0) + 1;
+  const column = (lines.pop()?.length ?? 0) + 1;
   return {
     line,
     column
@@ -234,7 +235,6 @@ function compile(nodes) {
     return text.toString().split("\n").map((line, idx) => idx === 0 ? line : indentation + line).join("\n");
   }
   nodes.forEach((node, idx) => {
-    var _a, _b;
     const prevNode = nodes[idx - 1];
     const nextNode = nodes[idx + 1];
     switch (node.type) {
@@ -244,14 +244,14 @@ function compile(nodes) {
       }
       case "text": {
         let content = node.content;
-        if ((prevNode == null ? void 0 : prevNode.type) === "statement") {
+        if (prevNode?.type === "statement") {
           content = trimLaggingNewline(content);
-        } else if ((prevNode == null ? void 0 : prevNode.type) === "templateMarker" && prevNode.context.marker === "start") {
+        } else if (prevNode?.type === "templateMarker" && prevNode.context.marker === "start") {
           content = trimLaggingNewline(content);
         }
-        if ((nextNode == null ? void 0 : nextNode.type) === "statement") {
+        if (nextNode?.type === "statement") {
           content = trimLeadingIndentation(content);
-        } else if ((nextNode == null ? void 0 : nextNode.type) === "templateMarker" && nextNode.context.marker === "end") {
+        } else if (nextNode?.type === "templateMarker" && nextNode.context.marker === "end") {
           content = trimLeadingIndentationAndNewline(content);
         }
         if (content) {
@@ -261,7 +261,7 @@ function compile(nodes) {
         break;
       }
       case "expression": {
-        const indentation = getLeadingIndentation((_a = prevNode.content) != null ? _a : "");
+        const indentation = getLeadingIndentation(prevNode.content ?? "");
         if (!indentation) {
           write(`${RESULT} += ${node.content};
 `);
@@ -278,7 +278,7 @@ function compile(nodes) {
       }
       case "templateMarker": {
         if (node.context.marker === "start") {
-          indent = getLeadingIndentation((_b = prevNode == null ? void 0 : prevNode.content) != null ? _b : "");
+          indent = getLeadingIndentation(prevNode?.content ?? "");
           write(`(() => {
 `);
           indent += "  ";
@@ -309,20 +309,29 @@ function compiler(template) {
 }
 
 // src/cli.ts
-function getConfig() {
+function getConfigFilePath() {
+  const cwd = process.cwd();
+  for (const ext of [".js", ".mjs", ".cjs"]) {
+    const path = (0, import_path.join)(cwd, ".ets") + ext;
+    if ((0, import_fs.existsSync)(path)) {
+      return path;
+    }
+  }
+}
+async function getConfig() {
   const cwd = process.cwd();
   const defaultConfig = {
     source: cwd
   };
-  const configFilePath = (0, import_path.join)(cwd, ".ets.json");
+  const configFilePath = getConfigFilePath();
   let userConfig = {};
-  if ((0, import_fs.existsSync)(configFilePath)) {
+  if (configFilePath) {
     console.info(`Using configuration file at '${configFilePath}'.`);
-    const userConfigFile = (0, import_fs.readFileSync)(configFilePath, "utf8");
     try {
-      userConfig = JSON.parse(userConfigFile);
-    } catch {
-      console.error(`Failed to parse configuration file.`);
+      userConfig = (await import(configFilePath)).default;
+    } catch (e) {
+      console.error(`Failed to load configuration file:`);
+      console.log(e);
       process.exit(1);
     }
     const unknownKeys = Object.keys(userConfig).filter((key) => !defaultConfig.hasOwnProperty(key));
@@ -342,8 +351,8 @@ function findFiles(entry, ext) {
     return filepath;
   }).filter((file) => file.endsWith(ext));
 }
-function run() {
-  const {source} = getConfig();
+async function run() {
+  const {source} = await getConfig();
   const templates = findFiles(source, ".ets");
   const created = new Set();
   const updated = new Set();

@@ -15,7 +15,7 @@
     "dist/index.js"
   ],
   "scripts": {
-    "build": "esbuild src/index.ts --platform=node --target=node12 --bundle --outfile=dist/index.js",
+    "build": "yarn clean && esbuild src/index.ts --platform=node --target=node16 --bundle --outfile=dist/index.js && cp types.ts dist/index.d.ts",
     "clean": "rm -rf dist",
     "prepack": "yarn run build && cp ../../README.md .",
     "postpack": "rm README.md",
