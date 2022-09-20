@@ -2,4 +2,4 @@
 import { run } from "./cli";
 export type { UserConfig } from "./cli";
 
-run();
+void run();
