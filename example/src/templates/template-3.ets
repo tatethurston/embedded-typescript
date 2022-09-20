@@ -1,13 +1,13 @@
+---
 type AccountType = 'user' | 'admin' | 'enterprise';
 
-interface Account {
+export interface Props {
   name: string;
   type: AccountType;
 }
-
-export const render = ({ name, type}: Account): string => <%>
-Hello <%= name %>, you are <%
-  switch (type) { %>
+---
+Hello <%= props.name %>, you are <%
+switch (props.type) { %>
   <% case 'user': { %>
 a user!
   <% break; } %>
@@ -18,8 +18,7 @@ an admin!
 an enterprise user!
   <% break; } %>
   <% default: {
-    const exhaust: never = type;
+    const exhaust: never = props.type;
     return exhaust;
-   } %>
-  <% } %>
-<%>
+  } %>
+<% } %>

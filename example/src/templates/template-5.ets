@@ -1,32 +1,30 @@
+---
 type AccountType = 'user' | 'admin' | 'enterprise';
 
-interface Account {
+export interface Props {
   name: string;
   type: AccountType;
 }
-
-export const render = ({ name, type}: Account): string => {
-  let userMessage;
-  switch (type) {
-    case 'user': {
-      userMessage = 'a user!';
-      break;
-    }
-    case 'admin': {
-      userMessage = 'an admin!';
-      break;
-    }
-    case 'enterprise': {
-      userMessage = 'an enterprise user!';
-      break;
-    }
-    default: {
-      const exhaust: never = type;
-      return exhaust;
-   }
+---
+<%
+let userMessage;
+switch (props.type) {
+  case 'user': {
+    userMessage = 'a user!';
+    break;
   }
-
-  return <%>
-Hello <%= name %>, you are <%= userMessage %>
-  <%>
+  case 'admin': {
+    userMessage = 'an admin!';
+    break;
+  }
+  case 'enterprise': {
+    userMessage = 'an enterprise user!';
+    break;
+  }
+  default: {
+    const exhaust: never = props.type;
+    return exhaust;
+ }
 }
+%>
+Hello <%= props.name %>, you are <%= userMessage %>

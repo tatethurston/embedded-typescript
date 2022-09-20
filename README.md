@@ -1,6 +1,6 @@
 # Embedded TypeScript
 
-<blockquote>Type safe embedded TypeScript templates</blockquote>
+<blockquote>Type safe TypeScript templates</blockquote>
 
 <br />
 
@@ -22,16 +22,17 @@
 
 ## What is this? 🧐
 
-A type safe templating system for TypeScript. Templates are compiled to TypeScript files that are then imported for type safe string generation.
+A type safe templating system for TypeScript. Templates are compiled to TypeScript files that you then import for type safe string generation.
 
-This templating system draws inspiration from ERB, [EJS](https://ejs.co/), [handlebars](https://handlebarsjs.com/) and [mustache](https://github.com/janl/mustache.js). This project embraces the "just JavaScript" spirit of ejs and adds some of the helpful white space semantics of mustache.
+This templating system draws inspiration from ERB, [EJS](https://ejs.co/), [handlebars](https://handlebarsjs.com/) and [mustache](https://github.com/janl/mustache.js). This project embraces the "just JavaScript" spirit of `ejs` and adds some of the helpful white space semantics of `mustache`.
 
 Checkout the [examples](#examples-) or [play with embedded-typescript in your browser](https://codesandbox.io/s/ets-playground-9mzk8).
 
 ## Installation & Usage 📦
 
 1. Add this package to your project:
-   - `yarn add embedded-typescript`
+
+   `npm install embedded-typescript` or `yarn add embedded-typescript`
 
 ## Motivation
 
@@ -41,13 +42,12 @@ When using a typed language, I want my templates to be type checked. For most ca
 
 ## Syntax
 
-`<%>` — Begin or end a templated region. The syntax below is only valid inside a templated region.
-
-`<%= EXPRESSION %>` — Inserts the value of an expression. If the expression generates multiple lines, the indentation level is preserved across all resulting lines.
-
-`<% CODE %>` — Executes code, but does not insert a value.
-
-`TEXT` - Text literals are inserted as is. All white space is preserved.
+| Syntax              | Name       | Description                                                                                                                                    |
+| ------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--- CODE ---`      | Header     | Defines code that should live outside of the generated render function. Use this to define `Props` and any `import`s, `export`s or constants.  |
+| `<%= EXPRESSION %>` | Expression | Inserts the value of an expression. If the expression generates multiple lines, the indentation level is preserved across all resulting lines. |
+| `<% CODE %>`        | Statement  | Executes code, but does not insert a value.                                                                                                    |
+| `TEXT`              | Text       | Text literals are inserted as is. All white space is preserved.                                                                                |
 
 ## Examples 🚀
 
@@ -56,35 +56,34 @@ When using a typed language, I want my templates to be type checked. For most ca
 1. Write a template file: `my-template.ets`:
 
 ```typescript
-interface User {
-  name: string;
+---
+interface Props {
+  users: {
+    name: string;
+  }[]
 }
-
-export function render(users: User[]): string {
-  return <%>
-    <% users.forEach(function(user) { %>
+---
+<% props.users.forEach(function(user) { %>
 Name: <%= user.name %>
-    <% }) %>
-  <%>
-}
+<% }) %>
 ```
 
-2. Run the compiler: `yarn ets`. This will compile any files with the `.ets` extension. `my-template.ets.ts` will be generated.
+2. Run the compiler: `npx ets`. This will compile any files with the `.ets` extension. `my-template.ets.ts` will be generated.
 
 3. Import the generated `.ets.ts` file wherever you'd like to render your template:
 
 ```typescript
-import { render } from "./my-template.ets";
+import render from "./my-template.ets";
 
 /* will output:
 Name: Alice
 Name: Bob
 */
 
-console.log(render([{ name: "Alice" }, { name: "Bob" }]));
+console.log(render({ users: [{ name: "Alice" }, { name: "Bob" }] }));
 ```
 
-Note that the arguments to your template function are type checked. There isn't anything special about the `render` export, in our template file this could have been named anything, such as `printUserNames`.
+Note that the arguments to your template function are type checked. You define the arguments to your template function by defining a `type` or `interface` named `Props`.
 
 #### Partials
 
@@ -93,62 +92,60 @@ Embedded TypeScript preserves the indentation wherever an `expression` tag (`<%=
 1. Write a "partial" `user-partial.ets`:
 
 ```typescript
-export interface User {
+---
+interface Props {
   name: string;
   email: string;
   phone: string;
 }
-
-export function render(user: User): string {
-  return <%>
-Name: <%= user.name %>
-Email: <%= user.email %>
-Phone: <%= user.phone %>
-  <%>
-}
+---
+Name: <%= props.user.name %>
+Email: <%= props.user.email %>
+Phone: <%= props.user.phone %>
 ```
 
-Note there is nothing special about `user-partial.ets`, it's just an `ets` template. We're using the `-patial` suffix purely for illustration.
+Note there is nothing special about `user-partial.ets`, it's just an `ets` template. We're using the `-partial` suffix purely for illustration.
 
 2. Import your "partial" into another `ets` template `my-template-2.ets`:
 
 ```typescript
-import { render as renderUser, User } from './user-partial.ets';
+---
+import renderUser, { Props as User } from './user-partial.ets';
+
+interface Props {
+  users: User[];
+}
 
 const example =
 `1
 2
 3
 4`;
-
-export function render(users: User[]): string {
-  return <%>
-<% if (users.length > 0) { %>
+---
+<% if (props.users.length > 0) { %>
 Here is a list of users:
 
-  <% users.forEach(function(user) { %>
+  <% props.users.forEach(function(user) { %>
   <%= renderUser(user) %>
   <% }) %>
 
 <% } %>
 The indentation level is preserved for the rendered 'partial'.
 
-There isn't anything special about the 'partial'. Here we used another `ets` template, but any
+There isn't anything special about the 'partial'. Here we used another `.ets` template, but any
 expression yeilding a multiline string would be treated the same.
 
   <%= example %>
 
 The end!
-  <%>
-}
 ```
 
-3. Run the compiler: `yarn ets`.
+3. Run the compiler: `npx ets`.
 
 4. Import the generated `my-template-2.ets.ts` file wherever you'd like to render your template:
 
 ```typescript
-import { render } from "./my-template-2.ets";
+import render from "./my-template-2.ets";
 
 /* will output:
 Here is a list of users:
@@ -175,14 +172,16 @@ The end!
 */
 
 console.log(
-  render([
-    { name: "Tate", phone: "888-888-8888", email: "tate@tate.com" },
-    { name: "Emily", phone: "777-777-7777", email: "emily@emily.com" },
-  ])
+  render({
+    users: [
+      { name: "Tate", phone: "888-888-8888", email: "tate@tate.com" },
+      { name: "Emily", phone: "777-777-7777", email: "emily@emily.com" },
+    ],
+  })
 );
 ```
 
-Note that above the indentation was preserved for both `render` from `user-partial.ets` and the `example` string literal. Any expression yielding a multi-line string rendered inside an `expresssion` block (`<%= EXPRESSION %>`) will preserve the indentation across each line.
+Note that indentation was preserved for all lines rendered by `user-partial.ets` and all lines of the `example` variable. Any expression yielding a multi-line string rendered inside an `expresssion` block (`<%= EXPRESSION %>`) will apply the indentation across each line.
 
 #### More Examples
 
@@ -210,33 +209,67 @@ The next 5 lines provide visual context for the error.
 
 ## Notable deviations from prior art
 
-Rather than treating the entire contents of an input file as templated text, `embedded-typescript` templates explicitly indicate templated regions (delimited by`<%>`). This symbol is used to both start and end a templated region. Outside of a templating region file contents are treated as TypeScript. This enables complete control over the namespace: you explicitly specify exports and their type signature. Because it's just TypeScript, outside of a templated region, you can `import` any helpers, utilities, partials, etc. If you've worked with JSX things should feel familiar.
-
-This tool specifically targets text templating, rather than HTML templating. Think: code generation, text message content (emails or SMS), etc. HTML templating is possible with this tool, but I would generally recommend JSX instead for HTML cases.
+This tool specifically targets text templating, rather than HTML templating. Think: code generation, text message content (emails or SMS), etc. HTML templating is possible with this tool, but I would generally recommend JSX instead of `embedded-typescript` for HTML.
 
 The templating system does _not_ perform any HTML escaping. You can `import` any self authored or 3rd party HTML escaping utilities in your template, and call that directly on any untrusted input:
 
 ```typescript
+---
 import htmlescape from 'htmlescape';
 
-interface User {
-  name: string;
+interface Props {
+  users: { name: string}[];
 }
-
-export function render(users: User[]): string {
-  return <%>
-    <% users.forEach(function(user) { %>
+---
+<% props.users.forEach(function(user) { %>
 <p>Name: <%= htmlescape(user.name) %></p>
-    <% }) %>
-  <%>
-}
+<% }) %>
 ```
 
-I'm not aware of any other templating systems that preserve indentation for partials and multi-line strings like Embedded-TypeScript. Many templating libraries target HTML so this is not surprising, but I've found this functionality nice for text templates.
+I'm not aware of any other templating systems that preserve indentation for partials and multi-line strings like Embedded TypeScript. Many templating libraries target HTML so this is not surprising, but I've found this functionality useful for text templates.
 
 ## Highlights
 
 🎁 Zero run time dependencies
+
+## Configuration 🛠
+
+Embedded TypeScript aims to be zero config, but can be configured by creating an `ets.config.mjs` (or `.js` or `.cjs`) file in your project root.
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Type</th>
+    </tr>
+  </thead>
+  <tbody>
+<tr>
+  <td>source</td>
+<td>
+  The root directory. `.ets` files will be searched under this directory. Embedded TypeScript will recursively search all subdirectories for `.ets` files.
+ 
+  Defaults to the project root.
+ 
+  Example:
+ 
+  Search for `.ets` files under a directory named `src`
+
+    // ets.config.mjs
+
+    ```js
+    /** @type {import('ets').Config} */
+    export default {
+      source: "src",
+    };
+    ```
+
+</td>
+<td>string (filepath)</td>
+</tr>
+</tbody>
+</table>
 
 ## Contributing 👫
 

@@ -62,3 +62,7 @@ export function trimLeadingIndentationAndNewline(token: string): string {
   }
   return token.replace(INDENTATION_TO_END_LINE_N, "");
 }
+
+export function removeFinalNewline(token: string): string {
+  return token.replace(/\n$/, "");
+}

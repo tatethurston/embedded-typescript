@@ -1,28 +1,29 @@
-type AccountType = 'user' | 'admin' | 'enterprise';
+---
+import renderUser, { Props as User } from './user-partial.ets';
 
-interface Account {
-  name: string;
-  type: AccountType;
+export interface Props {
+  users: User[];
 }
 
-export const render = ({ name, type}: Account): string => {
-  const userMessage = <%>
-<% switch (type) { %>
-  <% case 'user': { %>
-a user!
-  <% break; } %>
-  <% case 'admin': { %>
-an admin!
-  <% break; } %>
-  <% case 'enterprise': { %>
-an enterprise user!
-  <% break; } %>
-  <% default: {
-    const exhaust: never = type;
-    return exhaust;
-   } %>
+const example = 
+`1
+2
+3
+4`;
+---
+<% if (props.users.length > 0) { %>
+Here is a list of users:
+  <% props.users.forEach(function(user) { %>
+
+  <%= renderUser(user) %>
+  <% }) %>
+
 <% } %>
-<%>
+The indentation level is preserved for the rendered 'partial'.
 
-  return <%>Hello <%= name %>, you are <%= userMessage %><%>
-}
+There isn't anything special about the 'partial'. Here we used another ets template, but any
+expression yeilding a multiline string would be treated the same.
+
+  <%= example %>
+
+The end!
