@@ -13,23 +13,33 @@ export type UserConfig = Partial<Config>;
 
 type Config = { source: string };
 
-function getConfig(): Config {
+function getConfigFilePath(): string | undefined {
+  const cwd = process.cwd();
+  for (const ext of [".js", ".mjs", ".cjs"]) {
+    const path = join(cwd, ".ets") + ext;
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+}
+
+async function getConfig(): Promise<Config> {
   const cwd = process.cwd();
 
   const defaultConfig = {
     source: cwd,
   };
 
-  const configFilePath = join(cwd, ".ets.json");
-
+  const configFilePath = getConfigFilePath();
   let userConfig: UserConfig = {};
-  if (existsSync(configFilePath)) {
+  if (configFilePath) {
     console.info(`Using configuration file at '${configFilePath}'.`);
-    const userConfigFile = readFileSync(configFilePath, "utf8");
     try {
-      userConfig = JSON.parse(userConfigFile) as UserConfig;
-    } catch {
-      console.error(`Failed to parse configuration file.`);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      userConfig = (await import(configFilePath)).default;
+    } catch (e) {
+      console.error(`Failed to load configuration file:`);
+      console.log(e);
       process.exit(1);
     }
 
@@ -65,8 +75,8 @@ function findFiles(entry: string, ext: string): string[] {
     .filter((file) => file.endsWith(ext));
 }
 
-export function run(): void {
-  const { source } = getConfig();
+export async function run(): Promise<void> {
+  const { source } = await getConfig();
   const templates = findFiles(source, ".ets");
 
   const created = new Set<string>();

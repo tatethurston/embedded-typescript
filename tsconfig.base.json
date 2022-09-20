@@ -1,21 +1,11 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "declaration": true,
-    "declarationMap": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "lib": ["ESNext"],
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "noEmitOnError": false,
-    "removeComments": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "sourceMap": false,
+    "target": "es2016",
+    "module": "commonjs",
     "strict": true,
-    "target": "ES2015"
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "exclude": ["dist"]
 }
