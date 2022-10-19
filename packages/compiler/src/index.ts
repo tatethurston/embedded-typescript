@@ -13,20 +13,12 @@ const RESULT = "result";
 function compile(nodes: Node[]): string {
   let compiled = "";
   let indent = "";
+  let hasPreserveIndentation = false;
 
   function write(text: string): void {
     compiled += indent + text;
   }
 
-  function preserveIndentation(text: string, indentation: string): string {
-    return text
-      .toString()
-      .split("\n")
-      .map((line, idx) => (idx === 0 ? line : indentation + line))
-      .join("\n");
-  }
-
-  //console.log(JSON.stringify(nodes));
   nodes.forEach((node, idx) => {
     const prevNode = nodes[idx - 1];
     const nextNode = nodes[idx + 1];
@@ -71,10 +63,9 @@ function compile(nodes: Node[]): string {
         if (!indentation) {
           write(`${RESULT} += ${node.content};\n`);
         } else {
+          hasPreserveIndentation = true;
           write(
-            `${RESULT} += (${preserveIndentation.toString()})(${
-              node.content
-            }, '${indentation}');\n`
+            `${RESULT} += preserveIndentation(${node.content}, '${indentation}');\n`
           );
         }
         break;
@@ -92,7 +83,17 @@ function compile(nodes: Node[]): string {
 
   write(`return ${RESULT};\n`);
   indent = "";
-  write(`}`);
+  write(`}\n`);
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (hasPreserveIndentation) {
+    write(`\nfunction preserveIndentation(text: string, indentation: string): string {
+      return text
+        .split("\\n")
+        .map((line, idx) => (idx === 0 ? line : indentation + line))
+        .join("\\n");
+    }`);
+  }
 
   return compiled;
 }

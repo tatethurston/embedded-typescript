@@ -5,6 +5,7 @@
     "lint:fix": "prettier --write . && prettier-package-json --write '{,example/,packages/**/}package.json' && eslint --fix .",
     "prepare": "husky install",
     "test": "yarn jest 'packages/*' && yarn workspace embedded-typescript run build && (cd example && yarn clean && yarn build && yarn jest)",
+    "test:regen": "yarn jest -u 'packages/*' && yarn workspace embedded-typescript run build && (cd example && yarn clean && yarn build && yarn jest)",
     "typecheck": "yarn workspaces run tsc --noEmit"
   },
   "types": "dist",

@@ -1,10 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`compiler compile(template-1.ets) 1`] = `
-"export default function (props: unknown): string {
+"export interface Props {
+  users: { name: string }[];
+}
+
+export default function (props: Props): string {
   let result = "";
-  result +=
-    "\\nexport interface Props {\\n  users: { name: string }[];\\n}\\n---\\n";
   props.users.forEach(function (user) {
     result += "Name: ";
     result += user.name;
@@ -16,26 +18,35 @@ exports[`compiler compile(template-1.ets) 1`] = `
 `;
 
 exports[`compiler compile(template-2.ets) 1`] = `
-"export default function (props: unknown): string {
+"export interface Props {
+  name: string;
+  needsPasswordReset: boolean;
+}
+
+export default function (props: Props): string {
   let result = "";
-  result +=
-    "\\nexport interface Props {\\n  name: string;\\n  needsPasswordReset: boolean;\\n}\\n---\\nHello ";
+  result += "Hello ";
   result += props.name;
   result += "!\\n";
   if (props.needsPasswordReset) {
     result += "You need to update your password.\\n";
   }
-  result += "\\n";
   return result;
 }
 "
 `;
 
 exports[`compiler compile(template-3.ets) 1`] = `
-"export default function (props: unknown): string {
+"type AccountType = "user" | "admin" | "enterprise";
+
+export interface Props {
+  name: string;
+  type: AccountType;
+}
+
+export default function (props: Props): string {
   let result = "";
-  result +=
-    "\\ntype AccountType = 'user' | 'admin' | 'enterprise';\\n\\nexport interface Props {\\n  name: string;\\n  type: AccountType;\\n}\\n---\\nHello ";
+  result += "Hello ";
   result += props.name;
   result += ", you are ";
   switch (props.type) {
@@ -62,22 +73,32 @@ exports[`compiler compile(template-3.ets) 1`] = `
 `;
 
 exports[`compiler compile(template-4.ets) 1`] = `
-"export default function (props: unknown): string {
+"import { uppercase } from "./helpers";
+
+export interface Props {
+  name: string;
+}
+
+export default function (props: Props): string {
   let result = "";
-  result +=
-    "\\nimport { uppercase } from './helpers';\\n\\nexport interface Props {\\n  name: string;\\n}\\n---\\nHello ";
+  result += "Hello ";
   result += uppercase(props.name);
-  result += "!\\n";
+  result += "!";
   return result;
 }
 "
 `;
 
 exports[`compiler compile(template-5.ets) 1`] = `
-"export default function (props: unknown): string {
+"type AccountType = "user" | "admin" | "enterprise";
+
+export interface Props {
+  name: string;
+  type: AccountType;
+}
+
+export default function (props: Props): string {
   let result = "";
-  result +=
-    "\\ntype AccountType = 'user' | 'admin' | 'enterprise';\\n\\nexport interface Props {\\n  name: string;\\n  type: AccountType;\\n}\\n---\\n";
   let userMessage;
   switch (props.type) {
     case "user": {
@@ -101,45 +122,65 @@ exports[`compiler compile(template-5.ets) 1`] = `
   result += props.name;
   result += ", you are ";
   result += userMessage;
-  result += "\\n";
   return result;
 }
 "
 `;
 
 exports[`compiler compile(template-6.ets) 1`] = `
-{
-  "context": "    |
-13  | %>
-    | ^
-    | |
-...
-",
-  "error": "Unexpected closing tag '%>'",
-  "position": {
-    "end": {
-      "column": 2,
-      "line": 13,
-    },
-    "start": {
-      "column": 1,
-      "line": 13,
-    },
-  },
+"import renderUser, { Props as User } from "./user-partial.ets";
+
+export interface Props {
+  users: User[];
 }
+
+const example = \`1
+2
+3
+4\`;
+
+export default function (props: Props): string {
+  let result = "";
+  if (props.users.length > 0) {
+    result += "Here is a list of users:\\n";
+    props.users.forEach(function (user) {
+      result += "\\n  ";
+      result += preserveIndentation(renderUser(user), "  ");
+      result += "\\n";
+    });
+    result += "\\n";
+  }
+  result +=
+    "The indentation level is preserved for the rendered 'partial'.\\n\\nThere isn't anything special about the 'partial'. Here we used another ets template, but any\\nexpression yeilding a multiline string would be treated the same.\\n\\n  ";
+  result += preserveIndentation(example, "  ");
+  result += "\\n\\nThe end!";
+  return result;
+}
+
+function preserveIndentation(text: string, indentation: string): string {
+  return text
+    .split("\\n")
+    .map((line, idx) => (idx === 0 ? line : indentation + line))
+    .join("\\n");
+}
+"
 `;
 
 exports[`compiler compile(user-partial.ets) 1`] = `
-"export default function (props: unknown): string {
+"export interface Props {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export default function (props: Props): string {
   let result = "";
-  result +=
-    "\\nexport interface Props {\\n  name: string;\\n  email: string;\\n  phone: string;\\n}\\n---\\nName: ";
+  result += "Name: ";
   result += props.name;
   result += "\\nEmail: ";
   result += props.email;
   result += "\\nPhone: ";
   result += props.phone;
-  result += "\\n";
   return result;
 }
 "
