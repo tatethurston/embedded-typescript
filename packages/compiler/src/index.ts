@@ -1,9 +1,10 @@
+import { format } from "prettier";
 import {
   trimLeadingIndentation,
   getLeadingIndentation,
   trimLaggingNewline,
   sanitizeString,
-  trimLeadingIndentationAndNewline,
+  removeFinalNewline,
 } from "./utils";
 import { Node, parse, ParseError, isParseError } from "@ets/parser";
 
@@ -25,38 +26,38 @@ function compile(nodes: Node[]): string {
       .join("\n");
   }
 
+  //console.log(JSON.stringify(nodes));
   nodes.forEach((node, idx) => {
     const prevNode = nodes[idx - 1];
     const nextNode = nodes[idx + 1];
 
     switch (node.type) {
-      case "untemplated": {
-        write(node.content);
+      case "header": {
+        const props = /(interface|type) Props/.test(node.content)
+          ? "Props"
+          : "unknown";
+        write(`${node.content}\n\n`);
+        write(`export default function (props: ${props}): string {\n`);
+        indent += "  ";
+        write(`let ${RESULT} = '';\n`);
         break;
       }
       case "text": {
         let content = node.content;
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (prevNode?.type === "statement") {
-          content = trimLaggingNewline(content);
-        } else if (
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          prevNode?.type === "templateMarker" &&
-          prevNode.context.marker === "start"
-        ) {
+        if (prevNode?.type === "statement" || prevNode?.type === "header") {
           content = trimLaggingNewline(content);
         }
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (nextNode?.type === "statement") {
           content = trimLeadingIndentation(content);
-        } else if (
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          nextNode?.type === "templateMarker" &&
-          nextNode.context.marker === "end"
-        ) {
-          content = trimLeadingIndentationAndNewline(content);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!nextNode) {
+          content = removeFinalNewline(content);
         }
 
         if (content) {
@@ -82,26 +83,17 @@ function compile(nodes: Node[]): string {
         write(`${node.content}\n`);
         break;
       }
-      case "templateMarker": {
-        if (node.context.marker === "start") {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          indent = getLeadingIndentation(prevNode?.content ?? "");
-          write(`(() => {\n`);
-          indent += "  ";
-          write(`let ${RESULT} = '';\n`);
-        } else {
-          write(`return ${RESULT};\n`);
-          write(`})()`);
-          indent = "";
-        }
-        break;
-      }
       default: {
         const exhaust: never = node;
         return exhaust;
       }
     }
   });
+
+  write(`return ${RESULT};\n`);
+  indent = "";
+  write(`}`);
+
   return compiled;
 }
 
@@ -110,5 +102,6 @@ export function compiler(template: string): string | ParseError {
   if (isParseError(parsed)) {
     return parsed;
   }
-  return compile(parsed);
+
+  return format(compile(parsed), { parser: "typescript" });
 }

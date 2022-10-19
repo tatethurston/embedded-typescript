@@ -1,7 +1,7 @@
 {
   "name": "embedded-typescript",
-  "version": "0.0.9",
-  "description": "Type safe embedded TypeScript templates",
+  "version": "0.1.0",
+  "description": "Type safe TypeScript templates",
   "license": "MIT",
   "author": "Tate <tatethurston@gmail.com>",
   "repository": {
@@ -22,15 +22,19 @@
     "postversion": "git add --all package.json && git push && git push --tags"
   },
   "types": "dist",
+  "dependencies": {
+    "prettier": "^2.7.1"
+  },
   "devDependencies": {
     "esbuild": "^0.11.20"
   },
   "keywords": [
-    "embedded",
-    "engine",
-    "template",
-    "templating",
-    "type safe",
-    "typescript"
+    "embedded typescript",
+    "ets",
+    "type safe string",
+    "type safe template",
+    "type safe templating",
+    "typescript template",
+    "typescript templating"
   ]
 }

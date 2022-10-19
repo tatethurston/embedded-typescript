@@ -1,4 +1,4 @@
-import { render } from "./template-2.ets";
+import render from "./template-2.ets";
 
 describe("template-2", () => {
   it("renders OUTPUT1", () => {

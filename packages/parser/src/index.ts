@@ -1,37 +1,9 @@
 import { isPresent } from "./utils";
 
-type BaseNode<T extends string, Ctx = void> = Ctx extends void
-  ? {
-      type: T;
-      content: string;
-    }
-  : {
-      type: T;
-      content: string;
-      context: Ctx;
-    };
-
-export type TemplateMarkerNode = BaseNode<
-  "templateMarker",
-  {
-    marker: "start" | "end";
-  }
->;
-
-export type UntemplatedNode = BaseNode<"untemplated">;
-
-export type TextNode = BaseNode<"text">;
-
-export type ExpressionNode = BaseNode<"expression">;
-
-export type StatementNode = BaseNode<"statement">;
-
-export type Node =
-  | UntemplatedNode
-  | TemplateMarkerNode
-  | TextNode
-  | ExpressionNode
-  | StatementNode;
+export interface Node {
+  type: "header" | "text" | "expression" | "statement";
+  content: string;
+}
 
 interface Range {
   line: number;
@@ -47,13 +19,15 @@ export interface ParseError {
   context: string;
 }
 
-const TEMPLATE_MARKER = "<%>";
-const OPEN = "<%";
-const CLOSE = "%>";
-const EXPRESSION = "=";
+const SYMBOLS = {
+  Header: "---",
+  Open: "<%",
+  Close: "%>",
+  Expression: "=",
+};
 
 function isExpression(token: string): boolean {
-  return token.startsWith(EXPRESSION);
+  return token.startsWith(SYMBOLS.Expression);
 }
 
 function stripModifierToken(token: string): string {
@@ -70,7 +44,10 @@ export function isParseError(
   return typeof parsed === "object" && parsed != null && "error" in parsed;
 }
 
-type Position = { line: number; column: number };
+interface Position {
+  line: number;
+  column: number;
+}
 
 function lineAndColumn(template: string, index: number): Position {
   const lines = template.slice(0, index).split("\n");
@@ -121,120 +98,112 @@ function parseError({
 
 export function parse(template: string): Node[] | ParseError {
   const parsed: Node[] = [];
-
   let position = 0;
-  while (position < template.length) {
-    const templateStartIdx = template.indexOf(TEMPLATE_MARKER, position);
-    const templateRegionStart = templateStartIdx + TEMPLATE_MARKER.length;
 
-    if (!isPresent(templateStartIdx)) {
-      parsed.push({
-        type: "untemplated",
-        content: template.slice(position),
+  // header
+  const headerStartIdx = template.indexOf(SYMBOLS.Header, 0);
+  if (!isPresent(headerStartIdx)) {
+    return parseError({
+      error: `Expected to find a 'Header' ('${SYMBOLS.Header}') in the template`,
+      template,
+      startIdx: 0,
+      endIdx: template.length - 1,
+    });
+  }
+  const headerEndIdx = template.indexOf(
+    SYMBOLS.Header,
+    headerStartIdx + SYMBOLS.Header.length
+  );
+  if (!isPresent(headerEndIdx)) {
+    return parseError({
+      error: `Expected to find corresponding close to 'Header' ('${SYMBOLS.Header}') before end of template`,
+      template,
+      startIdx: headerStartIdx,
+      endIdx: template.length - 1,
+    });
+  }
+  const contentBeforeHeader = template.slice(0, headerStartIdx);
+  const nonWhiteSpaceIdx = contentBeforeHeader.search(/\S/);
+  if (isPresent(nonWhiteSpaceIdx)) {
+    return parseError({
+      error: `Unexpected token before 'Header' ('${SYMBOLS.Header}')`,
+      template,
+      startIdx: nonWhiteSpaceIdx,
+      endIdx: headerStartIdx,
+    });
+  }
+  parsed.push({
+    type: "header",
+    content: template.slice(
+      headerStartIdx + SYMBOLS.Header.length,
+      headerEndIdx
+    ),
+  });
+  position = headerEndIdx + SYMBOLS.Header.length;
+
+  // body
+  while (position < template.length) {
+    const openIdx = template.indexOf(SYMBOLS.Open, position);
+    const closeIdx = template.indexOf(SYMBOLS.Close, position);
+
+    if (
+      (!isPresent(openIdx) && isPresent(closeIdx)) ||
+      (isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx)
+    ) {
+      return parseError({
+        error: `Unexpected closing tag '${SYMBOLS.Close}'`,
+        template,
+        startIdx: closeIdx,
+        endIdx: closeIdx + SYMBOLS.Close.length - 1,
       });
-      break;
     }
 
-    const templateEndIdx = template.indexOf(
-      TEMPLATE_MARKER,
-      templateRegionStart
-    );
-    const templateRegionEnd = templateEndIdx;
-    if (isPresent(templateStartIdx) && !isPresent(templateEndIdx)) {
+    if (isPresent(openIdx) && !isPresent(closeIdx)) {
       return parseError({
-        error: `Expected to find corresponding closing tag '${TEMPLATE_MARKER}' before end of file`,
+        error: `Expected to find corresponding closing tag '${SYMBOLS.Close}' before end of template`,
         template,
-        startIdx: templateStartIdx,
+        startIdx: openIdx,
         endIdx: template.length - 1,
       });
     }
 
-    // text before template start
-    const text = template.slice(position, templateStartIdx);
+    const nextOpenIdx = template.indexOf(
+      SYMBOLS.Open,
+      openIdx + SYMBOLS.Open.length
+    );
+    if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
+      return parseError({
+        error: `Unexpected opening tag '${SYMBOLS.Open}'`,
+        template,
+        startIdx: nextOpenIdx,
+        endIdx: nextOpenIdx + SYMBOLS.Open.length - 1,
+      });
+    }
+
+    if (!isPresent(openIdx) && !isPresent(closeIdx)) {
+      parsed.push({
+        type: "text",
+        content: template.slice(position, template.length),
+      });
+      break;
+    }
+    // text before open tag
+    const text = template.slice(position, openIdx);
     if (text.length) {
-      parsed.push({ type: "untemplated", content: text });
+      parsed.push({ type: "text", content: text });
     }
 
-    parsed.push({
-      type: "templateMarker",
-      content: "",
-      context: {
-        marker: "start",
-      },
-    });
-    position = templateRegionStart;
-
-    while (position < templateRegionEnd) {
-      const region = template.slice(0, templateRegionEnd);
-      const openIdx = region.indexOf(OPEN, position);
-      const closeIdx = region.indexOf(CLOSE, position);
-
-      if (
-        (!isPresent(openIdx) && isPresent(closeIdx)) ||
-        (isPresent(openIdx) && isPresent(closeIdx) && closeIdx < openIdx)
-      ) {
-        return parseError({
-          error: `Unexpected closing tag '${CLOSE}'`,
-          template,
-          startIdx: closeIdx,
-          endIdx: closeIdx + CLOSE.length - 1,
-        });
-      }
-
-      if (isPresent(openIdx) && !isPresent(closeIdx)) {
-        return parseError({
-          error: `Expected to find corresponding closing tag '${CLOSE}' before end of template`,
-          template,
-          startIdx: openIdx,
-          endIdx: templateRegionEnd,
-        });
-      }
-
-      const nextOpenIdx = template.indexOf(OPEN, openIdx + OPEN.length);
-      if (isPresent(nextOpenIdx) && nextOpenIdx < closeIdx) {
-        return parseError({
-          error: `Unexpected opening tag '${OPEN}'`,
-          template,
-          startIdx: nextOpenIdx,
-          endIdx: nextOpenIdx + OPEN.length - 1,
-        });
-      }
-
-      if (!isPresent(openIdx) && !isPresent(closeIdx)) {
-        parsed.push({
-          type: "text",
-          content: region.slice(position, templateRegionEnd),
-        });
-        break;
-      }
-      // text before open tag
-      const text = template.slice(position, openIdx);
-      if (text.length) {
-        parsed.push({ type: "text", content: text });
-      }
-
-      const code = template.slice(openIdx + OPEN.length, closeIdx).trim();
-      if (isExpression(code)) {
-        parsed.push({
-          type: "expression",
-          content: stripModifierToken(code),
-        });
-      } else {
-        parsed.push({ type: "statement", content: code });
-      }
-
-      position = closeIdx + CLOSE.length;
+    const code = template.slice(openIdx + SYMBOLS.Open.length, closeIdx).trim();
+    if (isExpression(code)) {
+      parsed.push({
+        type: "expression",
+        content: stripModifierToken(code),
+      });
+    } else {
+      parsed.push({ type: "statement", content: code });
     }
 
-    position = templateRegionEnd + TEMPLATE_MARKER.length;
-
-    parsed.push({
-      type: "templateMarker",
-      content: "",
-      context: {
-        marker: "end",
-      },
-    });
+    position = closeIdx + SYMBOLS.Close.length;
   }
 
   return parsed;

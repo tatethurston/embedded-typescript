@@ -1,5 +1,8 @@
+---
 import { uppercase } from './helpers';
 
-export const render = (name: string): string => <%>
-Hello <%= uppercase(name) %>!
-<%>
+export interface Props {
+  name: string;
+}
+---
+Hello <%= uppercase(props.name) %>!

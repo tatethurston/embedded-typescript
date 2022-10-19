@@ -1,13 +1,10 @@
-export interface User {
+---
+export interface Props {
   name: string;
   email: string;
   phone: string;
 }
-
-export function render(user: User): string {
-  return <%>
-Name: <%= user.name %>
-Email: <%= user.email %>
-Phone: <%= user.phone %>
-  <%>
-}
+---
+Name: <%= props.name %>
+Email: <%= props.email %>
+Phone: <%= props.phone %>
