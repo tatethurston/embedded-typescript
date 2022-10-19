@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-undef
 module.exports = {
   root: true,
-  ignorePatterns: ["dist", "example", "packages/cli/src/templates"],
+  ignorePatterns: ["dist", "e2e", "coverage", "language-server", "vsc-client"],
   plugins: ["@typescript-eslint"],
   extends: [
     "eslint:recommended",
@@ -15,7 +15,7 @@ module.exports = {
       parserOptions: {
         // eslint-disable-next-line no-undef
         tsconfigRootDir: __dirname,
-        project: ["./tsconfig.base.json"],
+        project: ["./tsconfig.json"],
       },
       extends: [
         "plugin:@typescript-eslint/recommended-requiring-type-checking",
