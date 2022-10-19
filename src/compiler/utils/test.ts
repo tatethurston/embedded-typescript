@@ -4,7 +4,7 @@ import {
   trimLaggingNewline,
   getLeadingIndentation,
   trimLeadingIndentationAndNewline,
-} from ".";
+} from "./index.js";
 
 describe(sanitizeString, () => {
   it.each([

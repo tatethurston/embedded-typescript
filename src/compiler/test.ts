@@ -1,8 +1,8 @@
 import { join } from "path";
 import { readdirSync, readFileSync } from "fs";
-import { compiler } from ".";
+import { compiler } from "./index.js";
 
-const templatePath = "../../../example/src/templates/";
+const templatePath = "../../e2e/src/templates/";
 
 const templates = readdirSync(join(__dirname, templatePath)).filter(
   (filename) => filename.endsWith(".ets")
@@ -14,6 +14,6 @@ describe(compiler, () => {
       join(__dirname, templatePath, filename),
       "utf8"
     );
-    expect(compiler(template)).toMatchSnapshot();
+    expect(compiler(template, filename)).toMatchSnapshot();
   });
 });

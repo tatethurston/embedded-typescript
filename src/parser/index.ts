@@ -1,4 +1,6 @@
-import { isPresent } from "./utils";
+function isPresent(idx: number): boolean {
+  return idx !== -1;
+}
 
 export interface Node {
   type: "header" | "text" | "expression" | "statement";
